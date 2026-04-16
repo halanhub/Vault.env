@@ -29,6 +29,16 @@ async function readJsonBody<T>(res: Response): Promise<T | null> {
   }
 }
 
+/** Outbound fetch can throw (DNS, TLS, reset); never let it bubble to the API route. */
+async function dodoFetch(url: string, init?: RequestInit): Promise<Response | null> {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    console.error("[dodo] request failed:", url, e);
+    return null;
+  }
+}
+
 /** List active subscriptions for a product and match subscription.metadata to Firebase uid. */
 export async function findActiveSubscriptionIdForFirebaseUid(
   firebaseUid: string,
@@ -44,10 +54,10 @@ export async function findActiveSubscriptionIdForFirebaseUid(
     url.searchParams.set("status", "active");
     url.searchParams.set("page_size", "100");
     url.searchParams.set("page_number", String(page));
-    const res = await fetch(url.toString(), {
+    const res = await dodoFetch(url.toString(), {
       headers: { Authorization: `Bearer ${bearer}`, Accept: "application/json" },
     });
-    if (!res.ok) return null;
+    if (!res?.ok) return null;
     const body = await readJsonBody<{ items?: Array<{ subscription_id: string; metadata?: unknown }> }>(res);
     const items = body?.items ?? [];
     for (const it of items) {
@@ -76,10 +86,10 @@ export async function findActiveSubscriptionIdForFirebaseUidByCustomer(
     url.searchParams.set("status", "active");
     url.searchParams.set("page_size", "100");
     url.searchParams.set("page_number", String(page));
-    const res = await fetch(url.toString(), {
+    const res = await dodoFetch(url.toString(), {
       headers: { Authorization: `Bearer ${bearer}`, Accept: "application/json" },
     });
-    if (!res.ok) return null;
+    if (!res?.ok) return null;
     const body = await readJsonBody<{ items?: Array<{ subscription_id: string; metadata?: unknown }> }>(res);
     const items = body?.items ?? [];
     for (const it of items) {
@@ -106,7 +116,7 @@ export async function cancelDodoSubscription(
     when === "period_end"
       ? { cancel_at_next_billing_date: true, cancel_reason: "cancelled_by_merchant" }
       : { status: "cancelled", cancel_reason: "cancelled_by_merchant" };
-  const res = await fetch(`${base}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+  const res = await dodoFetch(`${base}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${bearer}`,
@@ -115,6 +125,14 @@ export async function cancelDodoSubscription(
     },
     body: JSON.stringify(body),
   });
+  if (!res) {
+    return {
+      ok: false,
+      status: 503,
+      detail:
+        "Could not reach Dodo API from the server. Verify DODO_PAYMENTS_API_BASE matches your Dodo REST host (e.g. https://live.dodopayments.com) and that the key is valid.",
+    };
+  }
   if (res.ok) return { ok: true };
   const errText = await res.text();
   let detail: unknown = errText;

@@ -35,7 +35,11 @@ async function lookupSubscriptionId(
     const found = await findActiveSubscriptionIdForFirebaseUidByCustomer(uid, customerId);
     if (found) {
       subscriptionId = found;
-      await mergeDodoSubscriptionId(uid, found);
+      try {
+        await mergeDodoSubscriptionId(uid, found);
+      } catch (e) {
+        console.error("[cancel] mergeDodoSubscriptionId", e);
+      }
     }
   }
 
@@ -45,7 +49,11 @@ async function lookupSubscriptionId(
       const found = await findActiveSubscriptionIdForFirebaseUid(uid, productId);
       if (found) {
         subscriptionId = found;
-        await mergeDodoSubscriptionId(uid, found);
+        try {
+          await mergeDodoSubscriptionId(uid, found);
+        } catch (e) {
+          console.error("[cancel] mergeDodoSubscriptionId", e);
+        }
       }
     }
   }
@@ -83,7 +91,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const billing = await getBillingFieldsForUid(uid);
+    let billing: Billing;
+    try {
+      billing = await getBillingFieldsForUid(uid);
+    } catch (e) {
+      console.error("[cancel] getBillingFieldsForUid", e);
+      return NextResponse.json(
+        {
+          error:
+            "Could not read billing from Firestore. Check FIREBASE_SERVICE_ACCOUNT_JSON on Netlify (valid JSON, one line or escaped).",
+        },
+        { status: 503 }
+      );
+    }
     if (!billing.soloActive) {
       return NextResponse.json({ error: "No active Solo subscription on this account." }, { status: 400 });
     }
@@ -103,11 +123,25 @@ export async function POST(req: Request) {
 
     // Stale Firestore id (e.g. cancelled in Dodo dashboard, then new sub) — re-resolve and retry once.
     if (!result.ok && (result.status === 404 || result.status === 410)) {
-      await mergeDodoBillingIds(uid, { dodoSubscriptionId: null });
-      const billingFresh = await getBillingFieldsForUid(uid);
+      try {
+        await mergeDodoBillingIds(uid, { dodoSubscriptionId: null });
+      } catch (e) {
+        console.error("[cancel] mergeDodoBillingIds", e);
+      }
+      let billingFresh: Billing;
+      try {
+        billingFresh = await getBillingFieldsForUid(uid);
+      } catch (e) {
+        console.error("[cancel] getBillingFieldsForUid retry", e);
+        return NextResponse.json({ error: "Dodo rejected the stored subscription id; could not reload billing from Firestore." }, { status: 503 });
+      }
       const retryId = await lookupSubscriptionId(uid, billingFresh, { skipStoredSubscriptionId: true });
       if (retryId) {
-        await mergeDodoSubscriptionId(uid, retryId);
+        try {
+          await mergeDodoSubscriptionId(uid, retryId);
+        } catch (e) {
+          console.error("[cancel] merge retry id", e);
+        }
         result = await cancelDodoSubscription(retryId, when);
       }
     }
@@ -121,7 +155,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, when });
   } catch (e) {
     console.error("[cancel-subscription]", e);
-    const message = e instanceof Error ? e.message : "Internal error.";
+    let message = e instanceof Error ? e.message : "Internal error.";
+    if (/fetch failed/i.test(message)) {
+      message =
+        "Server-side network error (often Firestore or Dodo API unreachable from Netlify). Check logs, FIREBASE_SERVICE_ACCOUNT_JSON, and DODO_PAYMENTS_API_BASE.";
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
