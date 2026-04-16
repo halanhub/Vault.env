@@ -1,6 +1,7 @@
 import { getApps, initializeApp, cert, type ServiceAccount } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { firebaseUidFromDodoMetadataRecord } from "./dodo-metadata";
 
 function ensureAdminApp() {
   if (getApps().length > 0) return;
@@ -83,10 +84,7 @@ export function firebaseUidFromDodoSubscriptionData(data: {
   metadata?: Record<string, unknown>;
   customer?: { metadata?: Record<string, unknown> };
 }): string | undefined {
-  const fromSub = data.metadata?.firebase_uid ?? data.metadata?.firebaseUid;
-  const fromCustomer =
-    data.customer?.metadata?.firebase_uid ?? data.customer?.metadata?.firebaseUid;
-  if (typeof fromSub === "string" && fromSub.length > 0) return fromSub;
-  if (typeof fromCustomer === "string" && fromCustomer.length > 0) return fromCustomer;
-  return undefined;
+  const fromSub = firebaseUidFromDodoMetadataRecord(data.metadata);
+  if (fromSub) return fromSub;
+  return firebaseUidFromDodoMetadataRecord(data.customer?.metadata);
 }

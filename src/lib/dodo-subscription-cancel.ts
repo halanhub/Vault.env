@@ -3,6 +3,8 @@
  * Uses DODO_PAYMENTS_API_KEY and DODO_PAYMENTS_API_BASE (same as /api/dodo/ping).
  */
 
+import { firebaseUidFromDodoMetadataRecord } from "./dodo-metadata";
+
 function dodoApiBase(): string {
   return process.env.DODO_PAYMENTS_API_BASE?.replace(/\/$/, "") ?? "https://live.dodopayments.com";
 }
@@ -14,9 +16,7 @@ function dodoBearer(): string | null {
 
 function firebaseUidFromSubscriptionMetadata(meta: unknown): string | undefined {
   if (!meta || typeof meta !== "object") return undefined;
-  const m = meta as Record<string, unknown>;
-  const a = m.firebase_uid ?? m.firebaseUid;
-  return typeof a === "string" && a.length > 0 ? a : undefined;
+  return firebaseUidFromDodoMetadataRecord(meta as Record<string, unknown>);
 }
 
 /** List active subscriptions for a product and match subscription.metadata to Firebase uid. */

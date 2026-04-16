@@ -19,10 +19,6 @@ export const metadata: Metadata = {
   title: "Vault.env - Zero-Knowledge Secret Manager",
   description:
     "A premium, zero-knowledge .env and project management hub. Client-side AES-256 encryption. Your master password never leaves your browser.",
-  icons: {
-    icon: "/icon",
-    apple: "/apple-icon",
-  },
   openGraph: {
     title: "Vault.env",
     description: "Zero-knowledge .env and secret management. AES-256-GCM encrypted.",
