@@ -3,12 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="robots" content="noindex" />
-    <title>Netlify form registration  -  contact</title>
+    <title>Netlify Forms registration</title>
   </head>
   <body>
     <!--
-      Netlify discovers HTML forms at deploy time. Keep field names in sync with /contact.
-      Not linked in the app; safe to leave unlisted.
+      Deploy-time only: Netlify scans this static file so the "contact" form exists.
+      Submissions must POST to this URL (not /) — see ContactNetlifyForm.
+      https://opennext.js.org/netlify/forms
     -->
     <form
       name="contact"
@@ -16,12 +17,12 @@
       data-netlify="true"
       data-netlify-honeypot="bot-field"
       action="/contact/thanks"
-      style="display: none"
+      hidden
       aria-hidden="true"
     >
       <input type="hidden" name="form-name" value="contact" />
       <p style="position: absolute; left: -10000px">
-        <label>Don’t fill this out: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+        <label>Do not fill: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
       </p>
       <input type="text" name="name" />
       <input type="email" name="email" />

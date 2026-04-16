@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * Netlify Forms (JS-rendered): build cannot see this form in static HTML, so we keep
- * `public/netlify-form-contact.html` in sync for deploy-time detection, then submit via
- * fetch POST to `/` per https://docs.netlify.com/manage/forms/setup/#submit-javascript-rendered-forms-with-ajax
+ * Netlify Forms + Next.js: submissions must POST to a **static file** under `public/`, not `/`.
+ * Otherwise the Next runtime handles the request and Netlify never records the submission.
+ * See https://opennext.js.org/netlify/forms
+ *
+ * No email address is required in code. Configure submission notifications under
+ * Netlify → Site configuration → Notifications → Form submission notifications.
  */
 export function ContactNetlifyForm() {
   const [submitting, setSubmitting] = useState(false);
@@ -26,7 +29,7 @@ export function ContactNetlifyForm() {
     }
 
     try {
-      const res = await fetch("/", {
+      const res = await fetch("/__forms.html", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString(),

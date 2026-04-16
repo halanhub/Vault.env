@@ -110,7 +110,7 @@ export default function ContactPage() {
         >
           {/*
             Netlify Forms: enable “Form detection” under Site settings → Forms.
-            Fields match public/netlify-form-contact.html; submission uses fetch POST to / (see ContactNetlifyForm).
+            Fields match public/__forms.html; submission POSTs to /__forms.html (see ContactNetlifyForm).
           */}
           <ContactNetlifyForm />
         </div>
