@@ -15,7 +15,8 @@ interface TabsProps {
 export function Tabs({ tabs, activeTab, onChange }: TabsProps) {
   return (
     <div style={{
-      display: "inline-flex",
+      display: "flex",
+      width: "100%",
       gap: 4,
       padding: 5,
       backgroundColor: "#fff",
@@ -31,8 +32,9 @@ export function Tabs({ tabs, activeTab, onChange }: TabsProps) {
             type="button"
             onClick={() => onChange(tab.id)}
             style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "9px 20px",
+              flex: 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+              padding: "9px 12px",
               borderRadius: 999, border: "none",
               fontSize: 14, fontWeight: 700,
               cursor: "pointer",

@@ -1,0 +1,9 @@
+# Vault.env - machine-readable summary (optional for crawlers / assistants)
+
+Site: https://vault-env.com
+Name: Vault.env
+Description: Zero-knowledge style secret manager. Secret values and file payloads are encrypted in the browser (AES-GCM); Firestore holds ciphertext and metadata. See the repository README for the full security model.
+
+Sitemap: https://vault-env.com/sitemap.xml
+
+Policy: Public marketing and blog are indexable. Authenticated routes (/dashboard, /profile, /project/, /api/) are listed in robots.txt as disallow.

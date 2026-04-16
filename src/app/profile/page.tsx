@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { buildSubscribeCheckoutHref } from "@/lib/subscribe-url";
+import { useMobile } from "@/hooks/useMobile";
 
 const CHECKOUT_BASE = process.env.NEXT_PUBLIC_CHECKOUT_URL;
 
@@ -34,6 +35,7 @@ const cardStyle: React.CSSProperties = {
 export default function ProfilePage() {
   const userId = useVaultStore((s) => s.userId);
   const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
+  const isMobile = useMobile();
   const [user, setUser] = useState<User | null>(null);
   const [billing, setBilling] = useState<BillingStatus>({ soloActive: false });
   const [billingLoading, setBillingLoading] = useState(true);
@@ -133,7 +135,7 @@ export default function ProfilePage() {
           maxWidth: 560,
           width: "100%",
           margin: "0 auto",
-          padding: "40px 28px 64px",
+          padding: isMobile ? "20px 16px 48px" : "40px 28px 64px",
           boxSizing: "border-box",
         }}
       >

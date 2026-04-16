@@ -2,7 +2,9 @@ import type { MetadataRoute } from "next";
 import { blogPosts } from "@/content/blog/posts";
 
 /**
- * Public URLs only (no auth shell). Requires NEXT_PUBLIC_SITE_URL in production for correct absolute URLs.
+ * Sitemap for crawlers at /sitemap.xml (Next.js MetadataRoute).
+ * Public URLs only (no auth shell). Set NEXT_PUBLIC_SITE_URL in production for correct absolute URLs.
+ * Robots.txt references this file; see src/app/robots.ts. Static public/sitemap.xml is not used.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "http://localhost:3000";

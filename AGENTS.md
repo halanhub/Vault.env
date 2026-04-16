@@ -1,3 +1,7 @@
+# Repository agent rules (Cursor / Claude / Codex)
+
+This file is included from `CLAUDE.md` for tools that expect that entrypoint. Edit **this** file when changing agent behavior.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

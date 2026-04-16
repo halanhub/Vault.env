@@ -7,6 +7,7 @@ import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { deleteProject, type Project } from "@/lib/firestore";
 import { Header } from "@/components/vault/header";
+import { useMobile } from "@/hooks/useMobile";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -29,6 +30,7 @@ export default function ProjectPage() {
   const router   = useRouter();
   const projectId = params.id as string;
 
+  const isMobile = useMobile();
   const [project,    setProject]   = useState<Project | null>(null);
   const [loading,    setLoading]   = useState(true);
   const [activeTab,  setActiveTab] = useState("secrets");
@@ -99,37 +101,73 @@ export default function ProjectPage() {
     <div style={{ minHeight: "100dvh", backgroundColor: "#FDFCF0", display: "flex", flexDirection: "column" }}>
       <Header />
 
-      <main style={{ flex: 1, maxWidth: 960, width: "100%", margin: "0 auto", padding: "40px 28px 64px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, maxWidth: 960, width: "100%", margin: "0 auto", padding: isMobile ? "20px 16px 48px" : "40px 28px 64px", boxSizing: "border-box" }}>
 
-        {/* ── Project header ── */}
-        <div style={{
-          display: "flex", flexWrap: "wrap",
-          alignItems: "center", justifyContent: "space-between",
-          gap: 16, marginBottom: 32,
-        }}>
-          {/* Left: back + icon + title */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {/* Back button */}
+        {/* ── Mobile: back row (matches header menu chrome - clear target, not cramped by icon row) ── */}
+        {isMobile && (
+          <div style={{ marginBottom: 16 }}>
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
+              aria-label="Back to projects"
               style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: 38, height: 38, borderRadius: 10,
-                border: "2px solid transparent", background: "none", cursor: "pointer",
-                transition: "background 0.15s, border-color 0.15s", flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#fff";
-                e.currentTarget.style.borderColor = "#000";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.borderColor = "transparent";
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: 42,
+                padding: "0 16px",
+                borderRadius: 10,
+                border: "2px solid #000",
+                backgroundColor: "#fff",
+                boxShadow: "3px 3px 0 0 #000",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+                color: "#1A1A1A",
               }}
             >
-              <ArrowLeft size={20} strokeWidth={2.5} />
+              <ArrowLeft size={18} strokeWidth={2.5} />
+              Projects
             </button>
+          </div>
+        )}
+
+        {/* ── Project header ── */}
+        <div style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "center",
+          justifyContent: "space-between",
+          gap: isMobile ? 14 : 16,
+          marginBottom: isMobile ? 20 : 32,
+        }}>
+          {/* Left: back (desktop) + icon + title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {/* Back - desktop only; mobile uses the row above */}
+            {!isMobile && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                aria-label="Back to projects"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 38, height: 38, borderRadius: 10,
+                  border: "2px solid transparent", background: "none", cursor: "pointer",
+                  transition: "background 0.15s, border-color 0.15s", flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#fff";
+                  e.currentTarget.style.borderColor = "#000";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.borderColor = "transparent";
+                }}
+              >
+                <ArrowLeft size={20} strokeWidth={2.5} />
+              </button>
+            )}
 
             {/* Project icon / image */}
             <div style={{
@@ -147,33 +185,76 @@ export default function ProjectPage() {
             </div>
 
             {/* Title + date */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h1 style={{ margin: 0, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 900, letterSpacing: "-0.04em" }}>
-                  {project.name}
-                </h1>
-                {/* Edit button */}
-                <button
-                  type="button"
-                  onClick={() => setShowEdit(true)}
-                  title="Edit project"
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  justifyContent: isMobile ? "space-between" : "flex-start",
+                }}
+              >
+                <h1
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                    border: "2px solid transparent", background: "none", cursor: "pointer",
-                    transition: "background 0.15s, border-color 0.15s",
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = "#fff";
-                    e.currentTarget.style.borderColor = "#000";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.borderColor = "transparent";
+                    margin: 0,
+                    fontSize: "clamp(20px, 3vw, 28px)",
+                    fontWeight: 900,
+                    letterSpacing: "-0.04em",
+                    minWidth: 0,
+                    flex: isMobile ? "1 1 auto" : undefined,
                   }}
                 >
-                  <Pencil size={14} strokeWidth={2.5} />
-                </button>
+                  {project.name}
+                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  {/* Edit button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowEdit(true)}
+                    title="Edit project"
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 30, height: 30, borderRadius: 8,
+                      border: "2px solid transparent", background: "none", cursor: "pointer",
+                      transition: "background 0.15s, border-color 0.15s",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = "#fff";
+                      e.currentTarget.style.borderColor = "#000";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.borderColor = "transparent";
+                    }}
+                  >
+                    <Pencil size={14} strokeWidth={2.5} />
+                  </button>
+                  {/* Delete - inline on mobile only (same row as edit) */}
+                  {isMobile && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDelete(true)}
+                      title="Delete project"
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 30, height: 30, borderRadius: 8,
+                        border: "2px solid transparent", background: "none", cursor: "pointer",
+                        transition: "background 0.15s, border-color 0.15s",
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = "#fef2f2";
+                        e.currentTarget.style.borderColor = "#ef4444";
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.borderColor = "transparent";
+                      }}
+                    >
+                      <Trash2 size={14} strokeWidth={2.5} color="#ef4444" />
+                    </button>
+                  )}
+                </div>
               </div>
               {/* One metadata line: date + project id (CLI) */}
               <div
@@ -182,7 +263,7 @@ export default function ProjectPage() {
                   display: "flex",
                   flexWrap: "wrap",
                   alignItems: "center",
-                  gap: "6px 10px",
+                  gap: "6px 8px",
                   fontSize: 13,
                   color: "#9ca3af",
                   lineHeight: 1.5,
@@ -204,7 +285,7 @@ export default function ProjectPage() {
                     padding: "2px 8px",
                     borderRadius: 6,
                     border: "1px solid #e5e7eb",
-                    maxWidth: "min(100%, 280px)",
+                    maxWidth: isMobile ? "120px" : "min(100%, 280px)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -254,10 +335,12 @@ export default function ProjectPage() {
             </div>
           </div>
 
-          {/* Right: delete */}
-          <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
-            <Trash2 size={15} strokeWidth={3} /> Delete
-          </Button>
+          {/* Right: delete (desktop only - mobile uses inline icon next to Edit) */}
+          {!isMobile && (
+            <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
+              <Trash2 size={15} strokeWidth={3} /> Delete
+            </Button>
+          )}
         </div>
 
         {/* ── Tabs ── */}

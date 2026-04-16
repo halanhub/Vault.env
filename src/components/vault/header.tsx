@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ShieldCheck, Lock, LogOut, CreditCard, User } from "lucide-react";
+import { ShieldCheck, Lock, LogOut, CreditCard, User, Menu, X } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useVaultStore } from "@/store/vault-store";
@@ -13,6 +14,31 @@ export function Header() {
   const lock = useVaultStore((s) => s.lock);
   const userId = useVaultStore((s) => s.userId);
   const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
+  function handleSignOut() {
+    setMenuOpen(false);
+    lock();
+    signOut(auth);
+  }
+
+  function handleLock() {
+    setMenuOpen(false);
+    lock();
+  }
 
   return (
     <header style={{
@@ -25,6 +51,7 @@ export function Header() {
         maxWidth: 1280, margin: "0 auto",
         padding: "0 24px", height: 64,
         display: "flex", alignItems: "center", justifyContent: "space-between",
+        position: "relative",
       }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -41,88 +68,116 @@ export function Header() {
           </span>
         </div>
 
-        {/* Actions  -  Subscribe opens checkout after login (Option A: account first, then pay) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <Link
-            href="/profile"
+        {/* ── Hamburger (all breakpoints, same as former mobile menu) ── */}
+        <div ref={menuRef} style={{ position: "relative" }}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "7px 16px",
-              borderRadius: 999,
-              border: "2px solid transparent",
-              background: "none",
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#1A1A1A",
-              textDecoration: "none",
-              transition: "background 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#fff";
-              e.currentTarget.style.borderColor = "#000";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.borderColor = "transparent";
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 42, height: 42, borderRadius: 10,
+              border: "2px solid #000", backgroundColor: "#fff",
+              boxShadow: "3px 3px 0 0 #000", cursor: "pointer",
             }}
           >
-            <User size={15} strokeWidth={2.5} />
-            Profile
-          </Link>
-          {subscribeHref ? (
-            <a
-              href={subscribeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Subscribe to Solo plan  -  opens checkout in a new tab"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "7px 16px",
-                borderRadius: 999,
-                border: "2px solid #000",
-                backgroundColor: "#1A1A1A",
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 700,
-                textDecoration: "none",
-                boxShadow: "3px 3px 0 0 #000",
-                transition: "transform 0.1s, box-shadow 0.1s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translate(1px, 1px)";
-                e.currentTarget.style.boxShadow = "2px 2px 0 0 #000";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "none";
-                e.currentTarget.style.boxShadow = "3px 3px 0 0 #000";
-              }}
-            >
-              <CreditCard size={15} strokeWidth={2.5} />
-              Subscribe
-            </a>
-          ) : null}
-          <HeaderButton
-            icon={<Lock size={15} strokeWidth={3} />}
-            label="Lock"
-            onClick={lock}
-          />
-          <HeaderButton
-            icon={<LogOut size={15} strokeWidth={3} />}
-            label="Sign Out"
-            onClick={() => { lock(); signOut(auth); }}
-            danger
-          />
+            {menuOpen
+              ? <X size={20} strokeWidth={2.5} />
+              : <Menu size={20} strokeWidth={2.5} />}
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 2px)", right: 0,
+              width: "min(260px, calc(100vw - 48px))",
+              backgroundColor: "#FDFCF0",
+              border: "2px solid #000",
+              borderRadius: 16,
+              boxShadow: "6px 6px 0 0 #000",
+              zIndex: 40,
+              overflow: "hidden",
+            }}>
+              <MobileMenuItem
+                icon={<User size={17} strokeWidth={2.5} />}
+                label="Profile"
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+              />
+              {subscribeHref && (
+                <MobileMenuItem
+                  icon={<CreditCard size={17} strokeWidth={2.5} />}
+                  label="Subscribe"
+                  href={subscribeHref}
+                  external
+                  onClick={() => setMenuOpen(false)}
+                  accent
+                />
+              )}
+              <div style={{ height: 1, backgroundColor: "#e5e7eb", margin: "0 16px" }} />
+              <MobileMenuButton
+                icon={<Lock size={17} strokeWidth={2.5} />}
+                label="Lock"
+                onClick={handleLock}
+              />
+              <MobileMenuButton
+                icon={<LogOut size={17} strokeWidth={2.5} />}
+                label="Sign Out"
+                onClick={handleSignOut}
+                danger
+              />
+            </div>
+          )}
         </div>
       </div>
     </header>
   );
 }
 
-function HeaderButton({
+/* ── Menu link ── */
+function MobileMenuItem({
+  icon, label, href, onClick, external = false, accent = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  onClick: () => void;
+  external?: boolean;
+  accent?: boolean;
+}) {
+  const style: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 12,
+    padding: "14px 20px",
+    fontSize: 15, fontWeight: 700,
+    color: accent ? "#1A1A1A" : "#1A1A1A",
+    textDecoration: "none",
+    backgroundColor: "transparent",
+    transition: "background 0.1s",
+  };
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" style={style}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0fdf0")}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+        onClick={onClick}
+      >
+        {icon}{label}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} style={style}
+      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f0")}
+      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+      onClick={onClick}
+    >
+      {icon}{label}
+    </Link>
+  );
+}
+
+/* ── Menu button (actions) ── */
+function MobileMenuButton({
   icon, label, onClick, danger = false,
 }: {
   icon: React.ReactNode;
@@ -135,27 +190,23 @@ function HeaderButton({
       type="button"
       onClick={onClick}
       style={{
-        display: "flex", alignItems: "center", gap: 7,
-        padding: "7px 16px",
-        borderRadius: 999,
-        border: "2px solid transparent",
-        background: "none",
-        fontSize: 13, fontWeight: 700,
+        display: "flex", alignItems: "center", gap: 12,
+        width: "100%", padding: "14px 20px",
+        fontSize: 15, fontWeight: 700,
         color: danger ? "#ef4444" : "#1A1A1A",
-        cursor: "pointer",
-        transition: "background 0.15s, border-color 0.15s",
+        backgroundColor: "transparent",
+        border: "none", cursor: "pointer",
+        transition: "background 0.1s",
+        textAlign: "left",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = danger ? "#fef2f2" : "#fff";
-        e.currentTarget.style.borderColor = danger ? "#fca5a5" : "#000";
+        e.currentTarget.style.backgroundColor = danger ? "#fef2f2" : "#f5f5f0";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = "transparent";
-        e.currentTarget.style.borderColor = "transparent";
       }}
     >
-      {icon}
-      {label}
+      {icon}{label}
     </button>
   );
 }

@@ -1,0 +1,6 @@
+Contact: https://vault-env.com/contact
+Preferred-Languages: en
+Canonical: https://vault-env.com/.well-known/security.txt
+Policy: https://vault-env.com/privacy
+
+# Vault.env vulnerability disclosure: use the contact URL above.

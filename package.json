@@ -13,7 +13,8 @@
     "build": "npm run build:crypto && next build",
     "start": "next start",
     "lint": "eslint",
-    "vault-env": "node packages/cli/dist/index.js"
+    "vault-env": "node packages/cli/dist/index.js",
+    "publish:packages": "npm run build:crypto && npm run build:cli && npm publish -w @vaultenv/crypto --access public && npm publish -w @vaultenv/cli --access public"
   },
   "dependencies": {
     "@dodopayments/nextjs": "^0.3.5",

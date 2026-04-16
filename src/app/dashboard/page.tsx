@@ -12,6 +12,7 @@ import {
 } from "@/lib/billing";
 import { Header } from "@/components/vault/header";
 import { Footer } from "@/components/vault/footer";
+import { useMobile } from "@/hooks/useMobile";
 import { SubscriptionRequiredModal } from "@/components/vault/subscription-required-modal";
 import { ProjectCard } from "@/components/project/project-card";
 import { CreateProjectModal } from "@/components/project/create-project-modal";
@@ -21,6 +22,7 @@ import { Spinner } from "@/components/ui/spinner";
 export default function DashboardPage() {
   const router = useRouter();
   const userId = useVaultStore((s) => s.userId);
+  const isMobile = useMobile();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -68,17 +70,17 @@ export default function DashboardPage() {
     <div style={{ minHeight: "100dvh", backgroundColor: "#FDFCF0", display: "flex", flexDirection: "column" }}>
       <Header />
 
-      <main style={{ flex: 1, maxWidth: 960, width: "100%", margin: "0 auto", padding: "48px 28px 64px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, maxWidth: 960, width: "100%", margin: "0 auto", padding: isMobile ? "24px 16px 48px" : "48px 28px 64px", boxSizing: "border-box" }}>
 
         {/* ── Hero section ── */}
         <div style={{ marginBottom: 36 }}>
           {/* Title + button row */}
           <div style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: isMobile ? "flex-start" : "center",
             justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 20,
+            gap: isMobile ? 12 : 16,
+            marginBottom: isMobile ? 16 : 20,
           }}>
             <div>
               <h1 style={{

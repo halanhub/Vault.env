@@ -9,14 +9,47 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatFileSize } from "@/lib/utils";
 
-const ALLOWED_TYPES = [".pem",".json",".pdf",".key",".crt",".cert",".env",".txt",".yml",".yaml",".toml",".cfg",".conf"];
+/** Lowercase extensions (images + secrets/config formats). */
+const ALLOWED_EXTENSIONS = [
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".pem",
+  ".json",
+  ".pdf",
+  ".key",
+  ".crt",
+  ".cert",
+  ".env",
+  ".txt",
+  ".yml",
+  ".yaml",
+  ".toml",
+  ".cfg",
+  ".conf",
+] as const;
+
+const ALLOWED_NAME_RE =
+  /\.(png|jpe?g|pem|json|pdf|key|crt|cert|env|txt|yml|yaml|toml|cfg|conf)$/i;
+
+/** For OS file picker + drag-drop hints (MIME quirks vary by browser). */
+const DROPZONE_ACCEPT: Record<string, string[]> = {
+  "image/png": [".png"],
+  "image/jpeg": [".jpg", ".jpeg"],
+  "application/json": [".json"],
+  "application/pdf": [".pdf"],
+  "text/plain": [".txt", ".env", ".pem", ".key", ".crt", ".cert", ".yml", ".yaml", ".toml", ".cfg", ".conf"],
+};
 
 function getFileIcon(name: string) {
-  if (name.endsWith(".pem") || name.endsWith(".key") || name.endsWith(".crt"))
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
+    return <FileIcon size={20} strokeWidth={2.5} style={{ color: "#059669" }} />;
+  if (lower.endsWith(".pem") || lower.endsWith(".key") || lower.endsWith(".crt"))
     return <FileKey size={20} strokeWidth={2.5} style={{ color: "#d97706" }} />;
-  if (name.endsWith(".json") || name.endsWith(".yml") || name.endsWith(".yaml"))
+  if (lower.endsWith(".json") || lower.endsWith(".yml") || lower.endsWith(".yaml"))
     return <FileText size={20} strokeWidth={2.5} style={{ color: "#2563eb" }} />;
-  if (name.endsWith(".pdf"))
+  if (lower.endsWith(".pdf"))
     return <FileText size={20} strokeWidth={2.5} style={{ color: "#dc2626" }} />;
   return <FileIcon size={20} strokeWidth={2.5} style={{ color: "#6b7280" }} />;
 }
@@ -50,10 +83,14 @@ export function FilesTab({ projectId }: { projectId: string }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ALLOWED_TYPES.reduce((acc, ext) => {
-      acc[`application/${ext.slice(1)}`] = [ext];
-      return acc;
-    }, {} as Record<string, string[]>),
+    accept: DROPZONE_ACCEPT,
+    validator: (file) => {
+      if (ALLOWED_NAME_RE.test(file.name)) return null;
+      return {
+        code: "file-invalid-type",
+        message: `Allowed types: ${ALLOWED_EXTENSIONS.join(", ")}`,
+      };
+    },
   });
 
   async function handleDelete(file: VaultFile) {
@@ -115,7 +152,7 @@ export function FilesTab({ projectId }: { projectId: string }) {
               {isDragActive ? "Drop files here" : "Drag & drop files here"}
             </p>
             <p style={{ margin: 0, fontSize: 13, color: "#9ca3af" }}>
-              .pem, .json, .pdf, .key, .crt, .env, .txt, .yml, .toml
+              .png, .jpg, .jpeg, .pem, .json, .pdf, .key, .crt, .env, .txt, .yml, .toml…
             </p>
           </div>
         )}

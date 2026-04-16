@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, chmodSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import os from "node:os";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -25,6 +26,22 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { encrypt, decrypt, type EncryptedPayload } from "@vaultenv/crypto";
+import { applyDefaultPublicFirebaseEnv } from "./default-public-config.js";
+
+function readPackageVersion(): string {
+  try {
+    const pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+    const j = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string };
+    return j.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+/** Helps confirm you are not running an old npx-cached build (pre-0.1.1 showed "Firebase email"). */
+function logCliVersion(): void {
+  console.log(`vault-env CLI ${readPackageVersion()}`);
+}
 
 const CREDENTIALS_DIR = path.join(os.homedir(), ".vault-env");
 const CREDENTIALS_FILE = path.join(CREDENTIALS_DIR, "credentials.json");
@@ -41,6 +58,31 @@ interface FirebaseEnv {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+}
+
+/** Optional overrides - first match in cwd when `--env-file` is omitted. */
+const CONNECTION_FILE_CANDIDATES = [
+  "vault-env.cli.env",
+  "vault-env.firebase.env",
+  ".env.local",
+] as const;
+
+function tryLoadConnectionFiles(cwd: string, explicit?: string): void {
+  if (explicit) {
+    const abs = path.isAbsolute(explicit) ? explicit : path.join(cwd, explicit);
+    if (!existsSync(abs)) {
+      throw new Error(`Connection file not found: ${abs}`);
+    }
+    loadEnvFile(abs);
+    return;
+  }
+  for (const name of CONNECTION_FILE_CANDIDATES) {
+    const p = path.join(cwd, name);
+    if (existsSync(p)) {
+      loadEnvFile(p);
+      return;
+    }
+  }
 }
 
 function loadEnvFile(filePath: string): void {
@@ -72,7 +114,7 @@ function getFirebaseEnv(): FirebaseEnv {
   const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
   if (!apiKey || !authDomain || !projectId || !storageBucket || !messagingSenderId || !appId) {
     throw new Error(
-      "Missing Firebase env vars. Set NEXT_PUBLIC_FIREBASE_* or use --env-file pointing to .env.local"
+      "Could not load Vault.env connection settings. If you self-host, use --env-file with your config file."
     );
   }
   return {
@@ -135,6 +177,28 @@ function clearCredentials(): void {
   if (existsSync(CREDENTIALS_FILE)) unlinkSync(CREDENTIALS_FILE);
 }
 
+/** Skip ~/.vault-env/credentials.json - prompt for email/password each command (or use VAULT_ENV_EMAIL / VAULT_ENV_PASSWORD). */
+function wantsNoCredentialStore(): boolean {
+  if (process.env.VAULT_ENV_NO_STORE === "1") return true;
+  return process.argv.includes("--no-store");
+}
+
+async function signInPrompt(
+  cfg: FirebaseEnv,
+  email?: string,
+  password?: string
+): Promise<{ uid: string; email: string }> {
+  logCliVersion();
+  const { auth: a } = getAuthDb(cfg);
+  const rl = createInterface({ input, output });
+  const em = email ?? (await rl.question("Vault.env email: "));
+  const pw = password ?? (await rl.question("Vault.env password: "));
+  await rl.close();
+  const res = await signInWithEmailAndPassword(a, em.trim(), pw);
+  const u = res.user;
+  return { uid: u.uid, email: u.email ?? em.trim() };
+}
+
 async function getMasterPassword(
   flag?: string
 ): Promise<string> {
@@ -142,7 +206,7 @@ async function getMasterPassword(
   const env = process.env.VAULT_MASTER_PASSWORD;
   if (env) return env;
   const rl = createInterface({ input, output });
-  const pw = await rl.question("Master password: ");
+  const pw = await rl.question("Vault master password (same as in the browser): ");
   await rl.close();
   return pw.trim();
 }
@@ -183,27 +247,47 @@ function serializeDotenv(entries: { key: string; value: string }[]): string {
 async function cmdLogin(
   cfg: FirebaseEnv,
   email: string | undefined,
-  password: string | undefined
+  password: string | undefined,
+  opts: { noSave?: boolean }
 ) {
+  const noSave = opts.noSave === true || wantsNoCredentialStore();
+  logCliVersion();
   const { auth: a } = getAuthDb(cfg);
   const rl = createInterface({ input, output });
-  const em = email ?? (await rl.question("Firebase email: "));
-  const pw = password ?? (await rl.question("Firebase password: "));
+  const em = email ?? (await rl.question("Vault.env email: "));
+  const pw = password ?? (await rl.question("Vault.env password: "));
   await rl.close();
   await signInWithEmailAndPassword(a, em.trim(), pw);
-  saveCredentials({ firebaseEmail: em.trim(), firebasePassword: pw });
   await signOut(a);
+  if (noSave) {
+    console.log(
+      "Signed in (credentials not saved). For pull/push without a saved password, run: vault-env --no-store pull ..."
+    );
+    return;
+  }
+  saveCredentials({ firebaseEmail: em.trim(), firebasePassword: pw });
   console.log("Saved credentials to", CREDENTIALS_FILE);
   console.warn(
-    "Warning: your Firebase password is stored in plain text. Restrict file permissions or use a dedicated account."
+    "Warning: your Vault.env account password is stored in plain text in that file. Restrict permissions on ~/.vault-env/ or use a dedicated account."
   );
 }
 
 async function ensureSignedIn(cfg: FirebaseEnv): Promise<{ uid: string; email: string }> {
+  if (wantsNoCredentialStore()) {
+    const e = process.env.VAULT_ENV_EMAIL;
+    const p = process.env.VAULT_ENV_PASSWORD;
+    if (e && p) {
+      const { auth: a } = getAuthDb(cfg);
+      const res = await signInWithEmailAndPassword(a, e, p);
+      const u = res.user;
+      return { uid: u.uid, email: u.email ?? e };
+    }
+    return signInPrompt(cfg, undefined, undefined);
+  }
   const cred = loadCredentials();
   if (!cred) {
     throw new Error(
-      "Not logged in. Run: vault-env login --env-file .env.local"
+      "Not logged in. Run: vault-env login  (or use: vault-env --no-store pull ... to sign in each time without saving)"
     );
   }
   const { auth: a } = getAuthDb(cfg);
@@ -344,27 +428,38 @@ async function cmdPush(
 
 async function main() {
   const program = new Command();
-  program.name("vault-env").description("Vault.env  -  pull/push secrets from the terminal");
+  program
+    .name("vault-env")
+    .description("Vault.env  -  pull/push secrets from the terminal")
+    .version(readPackageVersion(), "-V, --version", "show CLI version");
 
   program
     .option(
       "--env-file <path>",
-      "Path to .env with NEXT_PUBLIC_FIREBASE_* (default: .env.local in cwd)"
+      "Advanced: custom config file (only if you self-host Vault.env). Default: connects to vault-env.com"
+    )
+    .option(
+      "--no-store",
+      "Never read/write ~/.vault-env/credentials.json; prompt for Vault.env email/password each command (or set VAULT_ENV_NO_STORE=1)"
     )
     .hook("preAction", (thisCommand) => {
-      const opts = thisCommand.opts() as { envFile?: string };
-      const p = opts.envFile ?? path.join(process.cwd(), ".env.local");
-      loadEnvFile(p);
+      const opts = thisCommand.opts() as { envFile?: string; noStore?: boolean };
+      tryLoadConnectionFiles(process.cwd(), opts.envFile);
+      applyDefaultPublicFirebaseEnv();
+      if (opts.noStore) process.env.VAULT_ENV_NO_STORE = "1";
     });
 
   program
     .command("login")
-    .description("Save Firebase email/password for CLI (stored under ~/.vault-env/)")
-    .option("-e, --email <email>")
-    .option("-p, --password <password>")
-    .action(async (opts: { email?: string; password?: string }) => {
+    .description(
+      "Sign in with your Vault.env email and password (saved under ~/.vault-env/ unless --no-save)"
+    )
+    .option("-e, --email <email>", "Vault.env account email")
+    .option("-p, --password <password>", "Vault.env account password")
+    .option("--no-save", "Verify login but do not save credentials to disk")
+    .action(async (opts: { email?: string; password?: string; noSave?: boolean }) => {
       const cfg = getFirebaseEnv();
-      await cmdLogin(cfg, opts.email, opts.password);
+      await cmdLogin(cfg, opts.email, opts.password, { noSave: opts.noSave });
     });
 
   program
@@ -377,7 +472,7 @@ async function main() {
 
   program
     .command("whoami")
-    .description("Show signed-in user uid and email")
+    .description("Show your Vault.env user id and email")
     .action(async () => {
       const cfg = getFirebaseEnv();
       await cmdWhoami(cfg);
@@ -385,7 +480,7 @@ async function main() {
 
   program
     .command("projects")
-    .description("List project ids and names")
+    .description("List your Vault.env project ids and names")
     .action(async () => {
       const cfg = getFirebaseEnv();
       await cmdProjects(cfg);
@@ -394,9 +489,12 @@ async function main() {
   program
     .command("pull")
     .description("Decrypt secrets and write a .env file")
-    .requiredOption("--project <id>", "Firestore project document id")
+    .requiredOption("--project <id>", "Vault.env project id (shown on the project page)")
     .option("-o, --out <file>", "Output file", ".env")
-    .option("--master-password <pw>", "Master password (else VAULT_MASTER_PASSWORD or prompt)")
+    .option(
+      "--master-password <pw>",
+      "Vault master password, same as in the browser (else VAULT_MASTER_PASSWORD or prompt)"
+    )
     .action(
       async (opts: { project: string; out?: string; masterPassword?: string }) => {
         const cfg = getFirebaseEnv();
@@ -407,9 +505,12 @@ async function main() {
   program
     .command("push")
     .description("Encrypt and upload secrets from a .env file")
-    .requiredOption("--project <id>", "Firestore project document id")
+    .requiredOption("--project <id>", "Vault.env project id (shown on the project page)")
     .option("-f, --file <file>", "Input file", ".env")
-    .option("--master-password <pw>", "Master password (else VAULT_MASTER_PASSWORD or prompt)")
+    .option(
+      "--master-password <pw>",
+      "Vault master password, same as in the browser (else VAULT_MASTER_PASSWORD or prompt)"
+    )
     .action(
       async (opts: { project: string; file?: string; masterPassword?: string }) => {
         const cfg = getFirebaseEnv();

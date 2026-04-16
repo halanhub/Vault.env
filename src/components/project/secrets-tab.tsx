@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
+import { useMobile } from "@/hooks/useMobile";
+import { CliSyncPanel } from "@/components/project/cli-sync-panel";
 
 interface SecretRow { id: string; key: string; value: string; }
 
 export function SecretsTab({ projectId }: { projectId: string }) {
   const masterPassword = useVaultStore((s) => s.masterPassword);
   const userId = useVaultStore((s) => s.userId);
+  const isMobile = useMobile();
   const [secrets,    setSecrets]    = useState<SecretRow[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
@@ -89,10 +92,39 @@ export function SecretsTab({ projectId }: { projectId: string }) {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}><Spinner size="lg" /></div>;
+  const actionBtn = (
+    icon: React.ReactNode,
+    action: () => void,
+    title: string,
+    danger = false,
+  ) => (
+    <button
+      type="button"
+      onClick={action}
+      title={title}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: 32, height: 32, borderRadius: 8, border: "none",
+        backgroundColor: "transparent", cursor: "pointer", flexShrink: 0,
+        transition: "background 0.12s",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.backgroundColor = danger ? "#fef2f2" : "#f3f4f6")}
+      onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+    >
+      {icon}
+    </button>
+  );
 
   return (
     <div>
+      <CliSyncPanel projectId={projectId} />
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "48px 0 32px" }}>
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <>
       {/* Action bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <Button size="sm" onClick={() => setShowAdd(true)}>
@@ -113,8 +145,11 @@ export function SecretsTab({ projectId }: { projectId: string }) {
             boxShadow: "4px 4px 0 0 #000", marginBottom: 20,
           }}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}
-               className="secret-grid">
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: 14, marginBottom: 14,
+          }}>
             <Input id="newKey" label="Key" placeholder="DATABASE_URL" value={newKey} onChange={e => setNewKey(e.target.value)} autoFocus />
             <Input id="newValue" label="Value" placeholder="postgres://..." value={newValue} onChange={e => setNewValue(e.target.value)} />
           </div>
@@ -130,94 +165,175 @@ export function SecretsTab({ projectId }: { projectId: string }) {
         </form>
       )}
 
-      {/* Secrets table */}
+      {/* ── Secrets list ── */}
       {secrets.length > 0 ? (
-        <div style={{
-          backgroundColor: "#fff", border: "2px solid #000",
-          borderRadius: 24, overflow: "hidden", boxShadow: "6px 6px 0 0 #000",
-        }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #000", backgroundColor: "#f9fafb" }}>
-                  {["KEY", "VALUE", "ACTIONS"].map((h, i) => (
-                    <th key={h} style={{
-                      padding: "14px 20px", textAlign: i === 2 ? "right" : "left",
-                      fontSize: 11, fontWeight: 900, letterSpacing: "0.08em", color: "#6b7280",
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {secrets.map((secret, i) => (
-                  <tr key={secret.id} style={{
-                    borderBottom: i < secrets.length - 1 ? "1px solid #f3f4f6" : "none",
-                    transition: "background 0.1s",
+        isMobile ? (
+          /* ── Mobile: card per secret ── */
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {secrets.map((secret) => {
+              const isVisible = visibleIds.has(secret.id);
+              return (
+                <div
+                  key={secret.id}
+                  style={{
+                    backgroundColor: "#fff",
+                    border: "2px solid #000",
+                    borderRadius: 18,
+                    padding: "14px 16px",
+                    boxShadow: "4px 4px 0 0 #000",
                   }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fafafa")}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
-                    <td style={{ padding: "14px 20px" }}>
-                      <code style={{
-                        fontSize: 13, fontWeight: 700, fontFamily: "monospace",
-                        backgroundColor: "#f3f4f6", padding: "3px 8px",
-                        borderRadius: 6, border: "1px solid #e5e7eb",
-                      }}>
-                        {secret.key}
-                      </code>
-                    </td>
-                    <td style={{ padding: "14px 20px", maxWidth: 320 }}>
+                >
+                  {/* Key row + actions */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    minWidth: 0,
+                  }}>
+                    <code style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      fontFamily: "ui-monospace, monospace",
+                      backgroundColor: "#f3f4f6",
+                      padding: "3px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #e5e7eb",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      minWidth: 0,
+                      flexShrink: 1,
+                    }}>
+                      {secret.key}
+                    </code>
+                    <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                      {actionBtn(
+                        isVisible ? <EyeOff size={15} strokeWidth={2.5} /> : <Eye size={15} strokeWidth={2.5} />,
+                        () => toggleVisible(secret.id),
+                        "Toggle visibility",
+                      )}
+                      {actionBtn(
+                        copiedId === secret.id
+                          ? <Check size={15} strokeWidth={2.5} color="#16a34a" />
+                          : <Copy size={15} strokeWidth={2.5} />,
+                        () => copyValue(secret.value, secret.id),
+                        "Copy",
+                      )}
+                      {actionBtn(
+                        <Pencil size={15} strokeWidth={2.5} />,
+                        () => { setEditId(secret.id); setEditKey(secret.key); setEditValue(secret.value); },
+                        "Edit",
+                      )}
+                      {actionBtn(
+                        <Trash2 size={15} strokeWidth={2.5} color="#ef4444" />,
+                        () => handleDelete(secret.id),
+                        "Delete",
+                        true,
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Value - shown only when revealed */}
+                  {isVisible && (
+                    <div style={{
+                      marginTop: 10,
+                      paddingTop: 10,
+                      borderTop: "1px solid #f3f4f6",
+                    }}>
                       <span style={{
-                        fontSize: 13, fontFamily: "monospace", color: "#374151",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        display: "block",
+                        fontSize: 12,
+                        fontFamily: "ui-monospace, monospace",
+                        color: "#374151",
+                        wordBreak: "break-all",
                       }}>
-                        {visibleIds.has(secret.id)
-                          ? secret.value
-                          : "•".repeat(Math.min(secret.value.length || 8, 24))}
+                        {secret.value}
                       </span>
-                    </td>
-                    <td style={{ padding: "14px 20px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
-                        {[
-                          {
-                            icon: visibleIds.has(secret.id) ? <EyeOff size={15} strokeWidth={2.5} /> : <Eye size={15} strokeWidth={2.5} />,
-                            action: () => toggleVisible(secret.id), title: "Toggle visibility",
-                          },
-                          {
-                            icon: copiedId === secret.id ? <Check size={15} strokeWidth={2.5} color="#16a34a" /> : <Copy size={15} strokeWidth={2.5} />,
-                            action: () => copyValue(secret.value, secret.id), title: "Copy",
-                          },
-                          {
-                            icon: <Pencil size={15} strokeWidth={2.5} />,
-                            action: () => { setEditId(secret.id); setEditKey(secret.key); setEditValue(secret.value); },
-                            title: "Edit",
-                          },
-                          {
-                            icon: <Trash2 size={15} strokeWidth={2.5} color="#ef4444" />,
-                            action: () => handleDelete(secret.id), title: "Delete", danger: true,
-                          },
-                        ].map(({ icon, action, title, danger }, idx) => (
-                          <button key={idx} type="button" onClick={action} title={title}
-                            style={{
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              width: 32, height: 32, borderRadius: 8, border: "none",
-                              backgroundColor: "transparent", cursor: "pointer", transition: "background 0.12s",
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = danger ? "#fef2f2" : "#f3f4f6")}
-                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-                          >
-                            {icon}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          /* ── Desktop: full table ── */
+          <div style={{
+            backgroundColor: "#fff", border: "2px solid #000",
+            borderRadius: 24, overflow: "hidden", boxShadow: "6px 6px 0 0 #000",
+          }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #000", backgroundColor: "#f9fafb" }}>
+                    {["KEY", "VALUE", "ACTIONS"].map((h, i) => (
+                      <th key={h} style={{
+                        padding: "14px 20px", textAlign: i === 2 ? "right" : "left",
+                        fontSize: 11, fontWeight: 900, letterSpacing: "0.08em", color: "#6b7280",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {secrets.map((secret, i) => (
+                    <tr key={secret.id} style={{
+                      borderBottom: i < secrets.length - 1 ? "1px solid #f3f4f6" : "none",
+                      transition: "background 0.1s",
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fafafa")}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      <td style={{ padding: "14px 20px" }}>
+                        <code style={{
+                          fontSize: 13, fontWeight: 700, fontFamily: "monospace",
+                          backgroundColor: "#f3f4f6", padding: "3px 8px",
+                          borderRadius: 6, border: "1px solid #e5e7eb",
+                        }}>
+                          {secret.key}
+                        </code>
+                      </td>
+                      <td style={{ padding: "14px 20px", maxWidth: 320 }}>
+                        <span style={{
+                          fontSize: 13, fontFamily: "monospace", color: "#374151",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          display: "block",
+                        }}>
+                          {visibleIds.has(secret.id)
+                            ? secret.value
+                            : "•".repeat(Math.min(secret.value.length || 8, 24))}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 20px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
+                          {actionBtn(
+                            visibleIds.has(secret.id) ? <EyeOff size={15} strokeWidth={2.5} /> : <Eye size={15} strokeWidth={2.5} />,
+                            () => toggleVisible(secret.id),
+                            "Toggle visibility",
+                          )}
+                          {actionBtn(
+                            copiedId === secret.id ? <Check size={15} strokeWidth={2.5} color="#16a34a" /> : <Copy size={15} strokeWidth={2.5} />,
+                            () => copyValue(secret.value, secret.id),
+                            "Copy",
+                          )}
+                          {actionBtn(
+                            <Pencil size={15} strokeWidth={2.5} />,
+                            () => { setEditId(secret.id); setEditKey(secret.key); setEditValue(secret.value); },
+                            "Edit",
+                          )}
+                          {actionBtn(
+                            <Trash2 size={15} strokeWidth={2.5} color="#ef4444" />,
+                            () => handleDelete(secret.id),
+                            "Delete",
+                            true,
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : (
         <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
           <p style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700 }}>No secrets yet</p>
@@ -266,6 +382,8 @@ export function SecretsTab({ projectId }: { projectId: string }) {
           </Button>
         </form>
       </Modal>
+        </>
+      )}
     </div>
   );
 }

@@ -256,16 +256,26 @@ export async function uploadFile(
   file: File,
   masterPassword: string
 ): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("You must be signed in to upload files.");
+  }
+  await user.getIdToken(true);
+  const uid = user.uid;
+  if (uid !== userId) {
+    console.warn("[uploadFile] Store userId does not match auth uid; using auth uid for Storage path.");
+  }
+
   const arrayBuffer = await file.arrayBuffer();
   const { encrypted, iv, salt } = await encryptFile(arrayBuffer, masterPassword);
 
-  const storagePath = `vaults/${userId}/${projectId}/${Date.now()}_${file.name}`;
+  const storagePath = `vaults/${uid}/${projectId}/${Date.now()}_${file.name}`;
   const storageRef = ref(storage, storagePath);
   await uploadBytes(storageRef, encrypted);
 
   const docRef = await addDoc(collection(db, "files"), {
     projectId,
-    userId,
+    userId: uid,
     name: file.name,
     size: file.size,
     type: file.type,
@@ -283,6 +293,11 @@ export async function uploadFile(
 }
 
 export async function deleteFile(fileId: string, storagePath: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("You must be signed in to delete files.");
+  }
+  await user.getIdToken(true);
   await deleteObject(ref(storage, storagePath));
   await deleteDoc(doc(db, "files", fileId));
 }

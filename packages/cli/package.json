@@ -1,18 +1,29 @@
 {
   "name": "@vaultenv/cli",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.6",
+  "description": "CLI to pull and push Vault.env secrets from your terminal",
+  "license": "MIT",
   "type": "module",
   "bin": {
-    "vault-env": "./dist/index.js"
+    "vault-env": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@vaultenv/crypto": "file:../crypto",
+    "@vaultenv/crypto": "^0.1.0",
     "commander": "^12.1.0",
     "firebase": "^12.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "devDependencies": {
     "@types/node": "^20",
