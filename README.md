@@ -28,13 +28,13 @@ Developers share API keys through chat, tickets, and shared docs. That is fast b
 
 ### Product screenshots
 
-**Landing and authentication** — value proposition, tech badges, and sign-in (Google or email).
+**Landing and authentication** - value proposition, tech badges, and sign-in (Google or email).
 
 <p align="center">
   <img src="public/readme/case-study-hero-auth.png" alt="Vault.env landing page and sign-in card" width="900" />
 </p>
 
-**Project workspace** — per-project **Secrets** table (with reveal/copy/edit), **Files** and **Notes** tabs, **CLI** copy-paste block for `npx @vaultenv/cli`, and destructive actions (e.g. delete project) kept obvious and separated.
+**Project workspace** - per-project **Secrets** table (with reveal/copy/edit), **Files** and **Notes** tabs, **CLI** copy-paste block for `npx @vaultenv/cli`, and destructive actions (e.g. delete project) kept obvious and separated.
 
 <p align="center">
   <img src="public/readme/case-study-project-workspace.png" alt="Vault.env project page with secrets table and CLI section" width="900" />
@@ -53,9 +53,9 @@ Developers share API keys through chat, tickets, and shared docs. That is fast b
 ### What leaves the device (TLS) vs what the backend can read
 
 - **In transit:** HTTPS to Firebase; payloads are ciphertext plus IV/salt metadata as designed.
-- **Firebase Auth** sees **account identity** (e.g. email, uid) — required to sync per user.
+- **Firebase Auth** sees **account identity** (e.g. email, uid) - required to sync per user.
 - **Firestore** stores **ciphertext** for secret values and notes; **secret key names** (e.g. `DATABASE_URL`) and project/file **names** are **plaintext** in the data model so the UI can list and search them.
-- **Firebase Storage** holds **encrypted** file bytes for vault files; **project logo** images are stored **unencrypted** by design (public URL for display — documented in privacy copy).
+- **Firebase Storage** holds **encrypted** file bytes for vault files; **project logo** images are stored **unencrypted** by design (public URL for display - documented in privacy copy).
 
 ![Data flow: browser encrypts before Firestore](public/readme/security-data-flow.svg)
 
@@ -83,12 +83,12 @@ Developers share API keys through chat, tickets, and shared docs. That is fast b
 
 ## Repository map (high level)
 
-- `src/app/` — routes (marketing, dashboard, project workspace, contact, blog).
-- `src/lib/crypto.ts` — re-exports `@vaultenv/crypto`.
-- `src/lib/firestore.ts` — Firestore and Storage helpers.
-- `packages/crypto` — PBKDF2 + AES-GCM shared with CLI.
-- `packages/cli` — `vault-env` CLI (`pull` / `push` / `login`, etc.).
-- `firestore.rules` / `storage.rules` — deploy to Firebase for production security.
+- `src/app/` - routes (marketing, dashboard, project workspace, contact, blog).
+- `src/lib/crypto.ts` - re-exports `@vaultenv/crypto`.
+- `src/lib/firestore.ts` - Firestore and Storage helpers.
+- `packages/crypto` - PBKDF2 + AES-GCM shared with CLI.
+- `packages/cli` - `vault-env` CLI (`pull` / `push` / `login`, etc.).
+- `firestore.rules` / `storage.rules` - deploy to Firebase for production security.
 
 ---
 
@@ -154,7 +154,7 @@ Open **`https://localhost:3000`** (this repo enables experimental HTTPS for loca
 ### 7. Workspace packages
 
 - **Crypto:** `npm run build -w @vaultenv/crypto` (runs on `postinstall` as well).
-- **CLI:** `npm run build -w @vaultenv/cli` — then `npx @vaultenv/cli` or `npm run vault-env` after build.
+- **CLI:** `npm run build -w @vaultenv/cli` - then `npx @vaultenv/cli` or `npm run vault-env` after build.
 
 ---
 
