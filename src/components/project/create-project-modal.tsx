@@ -195,9 +195,14 @@ export function CreateProjectModal({ open, onClose, onCreated, onSubscriptionReq
                   <img
                     src={imagePreview}
                     alt="Preview"
+                    decoding="async"
                     style={{
-                      width: 64, height: 64, borderRadius: 12,
-                      objectFit: "cover",
+                      width: 64,
+                      height: 64,
+                      borderRadius: 12,
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      backgroundColor: "#f3f4f6",
                       border: "2px solid #000",
                     }}
                   />

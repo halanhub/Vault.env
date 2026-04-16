@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Upload, Trash2, FileText, FileKey, File as FileIcon } from "lucide-react";
+import { Upload, Trash2, Download, FileText, FileKey, File as FileIcon } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { useVaultStore } from "@/store/vault-store";
-import { getFiles, uploadFile, deleteFile, type VaultFile } from "@/lib/firestore";
+import { getFiles, uploadFile, deleteFile, downloadVaultFile, type VaultFile } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatFileSize } from "@/lib/utils";
@@ -60,6 +60,8 @@ export function FilesTab({ projectId }: { projectId: string }) {
   const [files,     setFiles]     = useState<VaultFile[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!userId) return;
@@ -98,6 +100,23 @@ export function FilesTab({ projectId }: { projectId: string }) {
     catch (err) { console.error(err); }
   }
 
+  async function handleDownload(file: VaultFile) {
+    if (!masterPassword) {
+      setDownloadError("Unlock your vault with your master password to download files.");
+      return;
+    }
+    setDownloadingId(file.id);
+    setDownloadError(null);
+    try {
+      await downloadVaultFile(file, masterPassword);
+    } catch (err) {
+      console.error(err);
+      setDownloadError(err instanceof Error ? err.message : "Download failed.");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
       <Spinner size="lg" />
@@ -106,6 +125,23 @@ export function FilesTab({ projectId }: { projectId: string }) {
 
   return (
     <div>
+      {downloadError ? (
+        <p
+          role="alert"
+          style={{
+            margin: "0 0 12px",
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "2px solid #000",
+            backgroundColor: "#fef2f2",
+            color: "#b91c1c",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {downloadError}
+        </p>
+      ) : null}
       {/* Drop zone */}
       <div
         {...getRootProps()}
@@ -190,22 +226,51 @@ export function FilesTab({ projectId }: { projectId: string }) {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(file)}
-                title="Delete file"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  width: 36, height: 36, flexShrink: 0,
-                  borderRadius: 10, border: "none",
-                  backgroundColor: "transparent", cursor: "pointer", transition: "background 0.12s",
-                  color: "#ef4444",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fef2f2")}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-              >
-                <Trash2 size={16} strokeWidth={2.5} />
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(file)}
+                  disabled={!masterPassword || downloadingId === file.id}
+                  title="Download decrypted file"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 36, height: 36,
+                    borderRadius: 10, border: "none",
+                    backgroundColor: "transparent", cursor: masterPassword ? "pointer" : "not-allowed",
+                    transition: "background 0.12s",
+                    color: masterPassword ? "#059669" : "#9ca3af",
+                    opacity: downloadingId === file.id ? 0.6 : 1,
+                  }}
+                  onMouseEnter={e => {
+                    if (masterPassword) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#ecfdf5";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                  }}
+                >
+                  {downloadingId === file.id ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Download size={16} strokeWidth={2.5} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(file)}
+                  title="Delete file"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 36, height: 36,
+                    borderRadius: 10, border: "none",
+                    backgroundColor: "transparent", cursor: "pointer", transition: "background 0.12s",
+                    color: "#ef4444",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#fef2f2")}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  <Trash2 size={16} strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

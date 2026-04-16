@@ -197,7 +197,16 @@ export function EditProjectModal({ open, onClose, onUpdated, project }: EditProj
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", border: "2px solid #000" }}
+                    decoding="async"
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 12,
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      backgroundColor: "#f3f4f6",
+                      border: "2px solid #000",
+                    }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

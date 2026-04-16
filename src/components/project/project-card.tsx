@@ -53,7 +53,7 @@ export function ProjectCard({ name, icon, imageUrl, updatedAt, onClick }: Projec
         width: 52, height: 52, marginBottom: 20,
         display: "flex", alignItems: "center", justifyContent: "center",
         borderRadius: 16, border: "2px solid #000",
-        backgroundColor: imageUrl ? "transparent" : "#C1F0C1",
+        backgroundColor: imageUrl ? "#f3f4f6" : "#C1F0C1",
         overflow: "hidden",
         flexShrink: 0,
       }}>
@@ -61,7 +61,14 @@ export function ProjectCard({ name, icon, imageUrl, updatedAt, onClick }: Projec
           <img
             src={imageUrl}
             alt={name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              objectPosition: "center",
+            }}
           />
         ) : (
           <IconComponent size={24} strokeWidth={2.5} />

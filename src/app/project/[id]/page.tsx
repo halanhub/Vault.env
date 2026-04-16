@@ -174,12 +174,25 @@ export default function ProjectPage() {
               width: 52, height: 52, flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
               borderRadius: 16, border: "2px solid #000",
-              backgroundColor: project.imageUrl ? "transparent" : "#C1F0C1",
+              backgroundColor: project.imageUrl ? "#f3f4f6" : "#C1F0C1",
               boxShadow: "3px 3px 0 0 #000",
               overflow: "hidden",
             }}>
               {project.imageUrl
-                ? <img src={project.imageUrl} alt={project.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ? (
+                  <img
+                    src={project.imageUrl}
+                    alt={project.name}
+                    fetchPriority="high"
+                    decoding="async"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                    }}
+                  />
+                )
                 : <IconComponent size={24} strokeWidth={2.5} />
               }
             </div>

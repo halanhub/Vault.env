@@ -12,9 +12,15 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
-import { ref, uploadBytes, deleteObject } from "firebase/storage";
+import { ref, uploadBytes, deleteObject, getBytes } from "firebase/storage";
 import { auth, db, storage } from "./firebase";
-import { encrypt, decrypt, encryptFile, type EncryptedPayload } from "./crypto";
+import {
+  encrypt,
+  decrypt,
+  encryptFile,
+  decryptFile,
+  type EncryptedPayload,
+} from "./crypto";
 import {
   getBillingStatus,
   mustSubscribeForAnotherProject,
@@ -310,6 +316,41 @@ export async function deleteFile(fileId: string, storagePath: string): Promise<v
   await user.getIdToken(true);
   await deleteObject(ref(storage, storagePath));
   await deleteDoc(doc(db, "files", fileId));
+}
+
+/**
+ * Fetches encrypted bytes from Storage, decrypts with the master password, and triggers a browser download.
+ */
+export async function downloadVaultFile(
+  file: VaultFile,
+  masterPassword: string
+): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("You must be signed in to download files.");
+  }
+  await user.getIdToken(true);
+  const storageRef = ref(storage, file.storagePath);
+  const encryptedBuf = await getBytes(storageRef);
+  const decrypted = await decryptFile(
+    encryptedBuf,
+    file.iv,
+    file.salt,
+    masterPassword
+  );
+  const blob = new Blob([decrypted], {
+    type: file.type || "application/octet-stream",
+  });
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.rel = "noopener";
+    a.click();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 // --- Notes ---
