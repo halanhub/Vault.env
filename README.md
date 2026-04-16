@@ -138,6 +138,16 @@ firebase deploy --only firestore:rules,storage
 
 Or copy [`firestore.rules`](firestore.rules) and [`storage.rules`](storage.rules) into **Firestore → Rules** and **Storage → Rules**.
 
+**Storage CORS (required for `getBytes` / vault file downloads in the browser):** Firebase Storage is backed by a Google Cloud bucket. Without CORS rules, the browser blocks downloads from your web app with “No `Access-Control-Allow-Origin` header”. Install [`gsutil`](https://cloud.google.com/storage/docs/gsutil_install) (or use `gcloud storage`), then apply [`storage-cors.json`](storage-cors.json) to your **default bucket** (same value as `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, e.g. `your-project-id.appspot.com`):
+
+```bash
+gsutil cors set storage-cors.json gs://YOUR_STORAGE_BUCKET
+```
+
+Example: `gsutil cors set storage-cors.json gs://vaultenv-f0028.firebasestorage.appspot.com`
+
+To verify: `gsutil cors get gs://YOUR_STORAGE_BUCKET`
+
 ### 5. Start the dev server
 
 ```bash

@@ -200,9 +200,8 @@ export function CreateProjectModal({ open, onClose, onCreated, onSubscriptionReq
                       width: 64,
                       height: 64,
                       borderRadius: 12,
-                      objectFit: "contain",
+                      objectFit: "cover",
                       objectPosition: "center",
-                      backgroundColor: "#f3f4f6",
                       border: "2px solid #000",
                     }}
                   />
