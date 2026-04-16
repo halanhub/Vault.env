@@ -53,6 +53,40 @@ export async function findActiveSubscriptionIdForFirebaseUid(
   return null;
 }
 
+/** List active subscriptions for a Dodo customer and match subscription.metadata to Firebase uid. */
+export async function findActiveSubscriptionIdForFirebaseUidByCustomer(
+  firebaseUid: string,
+  customerId: string
+): Promise<string | null> {
+  const bearer = dodoBearer();
+  if (!bearer) return null;
+  const base = dodoApiBase();
+  let page = 0;
+  for (;;) {
+    const url = new URL(`${base}/subscriptions`);
+    url.searchParams.set("customer_id", customerId);
+    url.searchParams.set("status", "active");
+    url.searchParams.set("page_size", "100");
+    url.searchParams.set("page_number", String(page));
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${bearer}`, Accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      items?: Array<{ subscription_id: string; metadata?: unknown }>;
+    };
+    const items = body.items ?? [];
+    for (const it of items) {
+      const m = firebaseUidFromSubscriptionMetadata(it.metadata);
+      if (m === firebaseUid) return it.subscription_id;
+    }
+    if (items.length < 100) break;
+    page += 1;
+    if (page > 50) break;
+  }
+  return null;
+}
+
 export async function cancelDodoSubscription(
   subscriptionId: string,
   when: "period_end" | "immediate"

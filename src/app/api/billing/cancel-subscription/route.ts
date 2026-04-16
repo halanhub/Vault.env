@@ -7,6 +7,7 @@ import {
 import {
   cancelDodoSubscription,
   findActiveSubscriptionIdForFirebaseUid,
+  findActiveSubscriptionIdForFirebaseUidByCustomer,
 } from "@/lib/dodo-subscription-cancel";
 
 export const runtime = "nodejs";
@@ -46,6 +47,19 @@ export async function POST(req: Request) {
   }
 
   let subscriptionId = billing.dodoSubscriptionId ?? undefined;
+  const customerId =
+    typeof billing.dodoCustomerId === "string" && billing.dodoCustomerId.length > 0
+      ? billing.dodoCustomerId
+      : undefined;
+
+  if (!subscriptionId && customerId) {
+    const found = await findActiveSubscriptionIdForFirebaseUidByCustomer(uid, customerId);
+    if (found) {
+      subscriptionId = found;
+      await mergeDodoSubscriptionId(uid, found);
+    }
+  }
+
   if (!subscriptionId) {
     const productId = process.env.DODO_SOLO_PRODUCT_ID?.trim();
     if (productId) {
@@ -61,7 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Could not resolve your Dodo subscription id. Wait for the next billing webhook, set DODO_SOLO_PRODUCT_ID for API lookup, or add dodoSubscriptionId to billing in Firestore.",
+          "Could not resolve your Dodo subscription id. After deploy, open Solo checkout once or wait for a subscription webhook so billing gets dodoCustomerId; or set DODO_SOLO_PRODUCT_ID; or add dodoSubscriptionId in Firestore.",
       },
       { status: 409 }
     );

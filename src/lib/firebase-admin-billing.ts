@@ -17,13 +17,19 @@ function ensureAdminApp() {
 export async function setSoloBillingForFirebaseUid(
   uid: string,
   soloActive: boolean,
-  dodoSubscriptionId?: string | null
+  patch?: {
+    dodoSubscriptionId?: string | null;
+    dodoCustomerId?: string | null;
+  }
 ): Promise<void> {
   ensureAdminApp();
   const db = getFirestore();
   const payload: Record<string, unknown> = { soloActive };
-  if (dodoSubscriptionId !== undefined) {
-    payload.dodoSubscriptionId = dodoSubscriptionId;
+  if (patch?.dodoSubscriptionId !== undefined) {
+    payload.dodoSubscriptionId = patch.dodoSubscriptionId;
+  }
+  if (patch?.dodoCustomerId !== undefined) {
+    payload.dodoCustomerId = patch.dodoCustomerId;
   }
   await db.collection("billing").doc(uid).set(payload, { merge: true });
 }
@@ -37,15 +43,18 @@ export async function verifyFirebaseIdToken(idToken: string): Promise<string> {
 export async function getBillingFieldsForUid(uid: string): Promise<{
   soloActive: boolean;
   dodoSubscriptionId?: string | null;
+  dodoCustomerId?: string | null;
 }> {
   ensureAdminApp();
   const snap = await getFirestore().collection("billing").doc(uid).get();
   if (!snap.exists) return { soloActive: false };
   const d = snap.data();
   const sid = d?.dodoSubscriptionId;
+  const cid = d?.dodoCustomerId;
   return {
     soloActive: d?.soloActive === true,
     dodoSubscriptionId: typeof sid === "string" ? sid : sid === null ? null : undefined,
+    dodoCustomerId: typeof cid === "string" ? cid : cid === null ? null : undefined,
   };
 }
 
@@ -55,6 +64,19 @@ export async function mergeDodoSubscriptionId(uid: string, subscriptionId: strin
     .collection("billing")
     .doc(uid)
     .set({ dodoSubscriptionId: subscriptionId }, { merge: true });
+}
+
+/** Merge-only: does not change soloActive (used by subscription.updated backfill). */
+export async function mergeDodoBillingIds(
+  uid: string,
+  patch: { dodoSubscriptionId?: string | null; dodoCustomerId?: string | null }
+): Promise<void> {
+  ensureAdminApp();
+  const payload: Record<string, unknown> = {};
+  if (patch.dodoSubscriptionId !== undefined) payload.dodoSubscriptionId = patch.dodoSubscriptionId;
+  if (patch.dodoCustomerId !== undefined) payload.dodoCustomerId = patch.dodoCustomerId;
+  if (Object.keys(payload).length === 0) return;
+  await getFirestore().collection("billing").doc(uid).set(payload, { merge: true });
 }
 
 export function firebaseUidFromDodoSubscriptionData(data: {
