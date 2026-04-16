@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Netlify form registration  -  contact</title>
+  </head>
+  <body>
+    <!--
+      Netlify discovers HTML forms at deploy time. Keep field names in sync with /contact.
+      Not linked in the app; safe to leave unlisted.
+    -->
+    <form
+      name="contact"
+      method="POST"
+      data-netlify="true"
+      data-netlify-honeypot="bot-field"
+      action="/contact/thanks"
+      style="display: none"
+      aria-hidden="true"
+    >
+      <input type="hidden" name="form-name" value="contact" />
+      <p style="position: absolute; left: -10000px">
+        <label>Don’t fill this out: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+      </p>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <textarea name="message"></textarea>
+    </form>
+  </body>
+</html>

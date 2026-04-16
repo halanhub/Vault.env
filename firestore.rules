@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ownsProject(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.userId == request.auth.uid;
+    }
+
+    // Vault key verification  -  own document only
+    match /vaultKeys/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Billing  -  Solo subscription flag (set by backend/webhook or admin; not client-writable)
+    match /billing/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Projects  -  owner only
+    match /projects/{projectId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Secrets  -  must include userId matching auth; project must belong to user
+    match /secrets/{secretId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && ownsProject(request.resource.data.projectId);
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.projectId == resource.data.projectId
+        && ownsProject(request.resource.data.projectId);
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Files metadata  -  same pattern
+    match /files/{fileId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && ownsProject(request.resource.data.projectId);
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.projectId == resource.data.projectId
+        && ownsProject(request.resource.data.projectId);
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Notes  -  same pattern
+    match /notes/{noteId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && ownsProject(request.resource.data.projectId);
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.projectId == resource.data.projectId
+        && ownsProject(request.resource.data.projectId);
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}

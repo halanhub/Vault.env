@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-cream: #FDFCF0;
+  --color-mint: #C1F0C1;
+  --color-mint-dark: #8AD98A;
+  --color-charcoal: #1A1A1A;
+  --color-smoke: #F5F5F5;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background: #FDFCF0;
+  color: #1A1A1A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-mint);
+  color: var(--color-charcoal);
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
+.sticker-shadow {
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.sticker-shadow-sm {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.sticker-shadow-hover {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: #000; }
+  50% { border-color: var(--color-mint-dark); }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Responsive secret grid: 2 cols on desktop, 1 on mobile */
+.secret-grid {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 540px) {
+  .secret-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pre-login FAQ: hide default disclosure marker (custom border card UI) */
+.vault-faq summary::-webkit-details-marker {
+  display: none;
 }

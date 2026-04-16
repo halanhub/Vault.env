@@ -2,16 +2,33 @@
   "name": "vault.env",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "postinstall": "npm run build -w @vaultenv/crypto",
+    "dev": "next dev -H 0.0.0.0 --experimental-https",
+    "build:crypto": "npm run build -w @vaultenv/crypto",
+    "build:cli": "npm run build -w @vaultenv/cli",
+    "build": "npm run build:crypto && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "vault-env": "node packages/cli/dist/index.js"
   },
   "dependencies": {
+    "@vaultenv/crypto": "file:packages/crypto",
+    "clsx": "^2.1.1",
+    "firebase": "^12.12.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-dropzone": "^15.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
