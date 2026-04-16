@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { Save, Eye, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -8,6 +8,56 @@ import { useVaultStore } from "@/store/vault-store";
 import { getNote, saveNote } from "@/lib/firestore";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+
+/** Block javascript:, data:, and exotic schemes in user-written Markdown preview. */
+function isSafeMarkdownHref(href: string): boolean {
+  const t = href.trim();
+  const lower = t.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:")
+  ) {
+    return false;
+  }
+  if (t.startsWith("#") || t.startsWith("/") || t.startsWith("./") || t.startsWith("../")) {
+    return true;
+  }
+  if (lower.startsWith("mailto:")) return true;
+  if (!t.includes(":")) return true;
+  try {
+    const u = new URL(t);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function SafeMdLink({
+  href,
+  children,
+}: {
+  href?: string;
+  children?: ReactNode;
+}) {
+  if (!href || !isSafeMarkdownHref(href)) {
+    return (
+      <span style={{ color: "#9ca3af", textDecoration: "line-through" }} title="Unsafe link removed">
+        {children}
+      </span>
+    );
+  }
+  const external = /^https?:\/\//i.test(href);
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      style={{ color: "#16a34a", textDecoration: "underline" }}
+    >
+      {children}
+    </a>
+  );
+}
 
 export function NotesTab({ projectId }: { projectId: string }) {
   const masterPassword = useVaultStore((s) => s.masterPassword);
@@ -129,7 +179,9 @@ export function NotesTab({ projectId }: { projectId: string }) {
                     ul: ({ children }) => <ul style={{ paddingLeft: 20, margin: "0 0 14px" }}>{children}</ul>,
                     ol: ({ children }) => <ol style={{ paddingLeft: 20, margin: "0 0 14px" }}>{children}</ol>,
                     li: ({ children }) => <li style={{ marginBottom: 4 }}>{children}</li>,
-                    a:  ({ href, children }) => <a href={href} style={{ color: "#16a34a", textDecoration: "underline" }}>{children}</a>,
+                    a: ({ href, children }) => (
+                      <SafeMdLink href={href}>{children}</SafeMdLink>
+                    ),
                     blockquote: ({ children }) => <blockquote style={{ borderLeft: "4px solid #C1F0C1", paddingLeft: 16, color: "#6b7280", margin: "0 0 14px" }}>{children}</blockquote>,
                   }}
                 >

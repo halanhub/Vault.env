@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 
 /**
  * Verifies Dodo API credentials server-side (GET /products).
- * Only available in development  -  remove or protect before exposing a public API surface.
+ * Disabled in production and on hosted prod deploys (never expose payment API probes publicly).
  */
 export async function GET() {
-  if (process.env.NODE_ENV !== "development") {
+  const lockedDown =
+    process.env.NODE_ENV !== "development" ||
+    process.env.VERCEL_ENV === "production" ||
+    process.env.CONTEXT === "production";
+  if (lockedDown) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
