@@ -363,8 +363,8 @@ export default function ProfilePage() {
                   Cancel Solo subscription
                 </Button>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#6b7280", lineHeight: 1.55 }}>
-                  Cancels through Vault.env (no Dodo login page). To update your card or download invoices, use the
-                  links in your Dodo billing emails or your payment provider&apos;s customer portal.
+                  Choose when Solo ends using the button above. Receipts and payment-method updates use the same email
+                  as this account—check your billing messages for links.
                 </p>
               </div>
             ) : (
