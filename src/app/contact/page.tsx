@@ -109,8 +109,8 @@ export default function ContactPage() {
           }}
         >
           {/*
-            Netlify: enable Form notifications in Netlify → Forms → contact.
-            Fields match public/netlify-form-contact.html for deploy-time detection.
+            Netlify Forms: enable “Form detection” under Site settings → Forms.
+            Fields match public/netlify-form-contact.html; submission uses fetch POST to / (see ContactNetlifyForm).
           */}
           <ContactNetlifyForm />
         </div>

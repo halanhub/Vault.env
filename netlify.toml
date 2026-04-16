@@ -17,3 +17,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Netlify Forms: Site settings → Forms → Usage and configuration → Form detection → Enable.
+# The contact form is JS-rendered; public/netlify-form-contact.html mirrors fields for deploy-time parsing.
