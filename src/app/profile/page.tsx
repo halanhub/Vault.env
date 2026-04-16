@@ -165,8 +165,8 @@ export default function ProfilePage() {
       }
       setCancelSuccess(
         cancelWhen === "period_end"
-          ? "Cancellation scheduled. Solo stays active until the end of the current billing period."
-          : "Subscription cancelled."
+          ? "Cancellation scheduled: you keep Solo until this billing period ends. In Dodo, that subscription usually stays Active until then—Cancelled appears after the period ends, not right away."
+          : "Cancelled in Dodo. Refresh the customer page if the status has not updated yet."
       );
       setCancelModalOpen(false);
       await loadBilling();
