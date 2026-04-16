@@ -5,11 +5,14 @@ import { ShieldCheck, Lock, LogOut, CreditCard, User } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useVaultStore } from "@/store/vault-store";
+import { buildSubscribeCheckoutHref } from "@/lib/subscribe-url";
 
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+const CHECKOUT_BASE = process.env.NEXT_PUBLIC_CHECKOUT_URL;
 
 export function Header() {
   const lock = useVaultStore((s) => s.lock);
+  const userId = useVaultStore((s) => s.userId);
+  const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
 
   return (
     <header style={{
@@ -68,9 +71,9 @@ export function Header() {
             <User size={15} strokeWidth={2.5} />
             Profile
           </Link>
-          {CHECKOUT_URL ? (
+          {subscribeHref ? (
             <a
-              href={CHECKOUT_URL}
+              href={subscribeHref}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Subscribe to Solo plan  -  opens checkout in a new tab"

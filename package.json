@@ -16,9 +16,11 @@
     "vault-env": "node packages/cli/dist/index.js"
   },
   "dependencies": {
+    "@dodopayments/nextjs": "^0.3.5",
     "@vaultenv/crypto": "file:packages/crypto",
     "clsx": "^2.1.1",
     "firebase": "^12.12.0",
+    "firebase-admin": "^13.8.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
@@ -28,6 +30,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

@@ -4,8 +4,10 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { CreditCard } from "lucide-react";
 import { FREE_PROJECT_LIMIT } from "@/lib/billing";
+import { useVaultStore } from "@/store/vault-store";
+import { buildSubscribeCheckoutHref } from "@/lib/subscribe-url";
 
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+const CHECKOUT_BASE = process.env.NEXT_PUBLIC_CHECKOUT_URL;
 
 interface SubscriptionRequiredModalProps {
   open: boolean;
@@ -13,6 +15,9 @@ interface SubscriptionRequiredModalProps {
 }
 
 export function SubscriptionRequiredModal({ open, onClose }: SubscriptionRequiredModalProps) {
+  const userId = useVaultStore((s) => s.userId);
+  const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
+
   return (
     <Modal open={open} onClose={onClose} title="Solo subscription required" maxWidth={460}>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -25,9 +30,9 @@ export function SubscriptionRequiredModal({ open, onClose }: SubscriptionRequire
           your profile so you can add more projects.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {CHECKOUT_URL ? (
+          {subscribeHref ? (
             <a
-              href={CHECKOUT_URL}
+              href={subscribeHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex w-full touch-manipulation select-none items-center justify-center gap-2 rounded-full font-bold transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"

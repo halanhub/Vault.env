@@ -18,8 +18,9 @@ import { Footer } from "@/components/vault/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { buildSubscribeCheckoutHref } from "@/lib/subscribe-url";
 
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+const CHECKOUT_BASE = process.env.NEXT_PUBLIC_CHECKOUT_URL;
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 20,
@@ -32,6 +33,7 @@ const cardStyle: React.CSSProperties = {
 
 export default function ProfilePage() {
   const userId = useVaultStore((s) => s.userId);
+  const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
   const [user, setUser] = useState<User | null>(null);
   const [billing, setBilling] = useState<BillingStatus>({ soloActive: false });
   const [billingLoading, setBillingLoading] = useState(true);
@@ -293,9 +295,9 @@ export default function ProfilePage() {
                   Subscribe to <strong style={{ color: "#1A1A1A" }}>Solo</strong> ($5/month) for unlimited
                   vaults.
                 </p>
-                {CHECKOUT_URL ? (
+                {subscribeHref ? (
                   <a
-                    href={CHECKOUT_URL}
+                    href={subscribeHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex w-full touch-manipulation select-none items-center justify-center gap-2 rounded-full font-bold transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none sm:w-auto"
