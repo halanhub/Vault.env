@@ -9,41 +9,54 @@ export const runtime = "nodejs";
 
 const webhookKey = process.env.DODO_PAYMENTS_WEBHOOK_KEY?.trim();
 
+type SubscriptionWebhookData = {
+  subscription_id?: string;
+  metadata?: Record<string, unknown>;
+  customer?: { metadata?: Record<string, unknown> };
+};
+
 async function applySoloFromPayload(
-  data: {
-    metadata?: Record<string, unknown>;
-    customer?: { metadata?: Record<string, unknown> };
-  },
-  soloActive: boolean
+  data: SubscriptionWebhookData,
+  soloActive: boolean,
+  subscriptionId: "from_payload" | "clear" | "omit"
 ) {
   const uid = firebaseUidFromDodoSubscriptionData(data);
   if (!uid) {
     console.warn("[dodo webhook] No firebase_uid in subscription metadata; set billing manually or fix checkout metadata.");
     return;
   }
-  await setSoloBillingForFirebaseUid(uid, soloActive);
+  let sid: string | null | undefined;
+  if (subscriptionId === "clear") {
+    sid = null;
+  } else if (subscriptionId === "from_payload") {
+    const raw = data.subscription_id;
+    sid = typeof raw === "string" && raw.length > 0 ? raw : undefined;
+  } else {
+    sid = undefined;
+  }
+  await setSoloBillingForFirebaseUid(uid, soloActive, sid);
 }
 
 export const POST = webhookKey
   ? Webhooks({
       webhookKey,
       onSubscriptionActive: async (p) => {
-        await applySoloFromPayload(p.data, true);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, true, "from_payload");
       },
       onSubscriptionRenewed: async (p) => {
-        await applySoloFromPayload(p.data, true);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, true, "from_payload");
       },
       onSubscriptionCancelled: async (p) => {
-        await applySoloFromPayload(p.data, false);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, false, "clear");
       },
       onSubscriptionExpired: async (p) => {
-        await applySoloFromPayload(p.data, false);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, false, "clear");
       },
       onSubscriptionFailed: async (p) => {
-        await applySoloFromPayload(p.data, false);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, false, "omit");
       },
       onSubscriptionOnHold: async (p) => {
-        await applySoloFromPayload(p.data, false);
+        await applySoloFromPayload(p.data as SubscriptionWebhookData, false, "omit");
       },
     })
   : async () =>

@@ -1,4 +1,5 @@
 import { getApps, initializeApp, cert, type ServiceAccount } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 function ensureAdminApp() {
@@ -15,11 +16,45 @@ function ensureAdminApp() {
 /** Server-only: updates Firestore billing/{uid} (client rules forbid direct writes). */
 export async function setSoloBillingForFirebaseUid(
   uid: string,
-  soloActive: boolean
+  soloActive: boolean,
+  dodoSubscriptionId?: string | null
 ): Promise<void> {
   ensureAdminApp();
   const db = getFirestore();
-  await db.collection("billing").doc(uid).set({ soloActive }, { merge: true });
+  const payload: Record<string, unknown> = { soloActive };
+  if (dodoSubscriptionId !== undefined) {
+    payload.dodoSubscriptionId = dodoSubscriptionId;
+  }
+  await db.collection("billing").doc(uid).set(payload, { merge: true });
+}
+
+export async function verifyFirebaseIdToken(idToken: string): Promise<string> {
+  ensureAdminApp();
+  const decoded = await getAuth().verifyIdToken(idToken);
+  return decoded.uid;
+}
+
+export async function getBillingFieldsForUid(uid: string): Promise<{
+  soloActive: boolean;
+  dodoSubscriptionId?: string | null;
+}> {
+  ensureAdminApp();
+  const snap = await getFirestore().collection("billing").doc(uid).get();
+  if (!snap.exists) return { soloActive: false };
+  const d = snap.data();
+  const sid = d?.dodoSubscriptionId;
+  return {
+    soloActive: d?.soloActive === true,
+    dodoSubscriptionId: typeof sid === "string" ? sid : sid === null ? null : undefined,
+  };
+}
+
+export async function mergeDodoSubscriptionId(uid: string, subscriptionId: string): Promise<void> {
+  ensureAdminApp();
+  await getFirestore()
+    .collection("billing")
+    .doc(uid)
+    .set({ dodoSubscriptionId: subscriptionId }, { merge: true });
 }
 
 export function firebaseUidFromDodoSubscriptionData(data: {
