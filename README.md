@@ -23,7 +23,7 @@ Developers share API keys through chat, tickets, and shared docs. That is fast b
 - **Vault master password** used only on the client to derive keys (PBKDF2 + AES-256-GCM via Web Crypto).
 - **Projects** with **Secrets** (key/value), **Files** (encrypted before upload), and **Notes** (encrypted markdown).
 - **Lock screen** and idle timeout so keys do not linger longer than the session.
-- **Public marketing site** (blog, contact, legal) with SEO-oriented sitemap and robots.
+- **Public marketing site** (blog, contact, legal).
 - **`@vaultenv/cli`** on npm so the same crypto package can **pull/push** secrets against Firestore.
 
 ### Product screenshots
@@ -89,23 +89,6 @@ Developers share API keys through chat, tickets, and shared docs. That is fast b
 - `packages/crypto` — PBKDF2 + AES-GCM shared with CLI.
 - `packages/cli` — `vault-env` CLI (`pull` / `push` / `login`, etc.).
 - `firestore.rules` / `storage.rules` — deploy to Firebase for production security.
-
----
-
-## Crawlers and SEO (production)
-
-| Resource | Notes |
-|----------|--------|
-| **Sitemap** | `/sitemap.xml` from [`src/app/sitemap.ts`](src/app/sitemap.ts) — set `NEXT_PUBLIC_SITE_URL` |
-| **Robots** | [`src/app/robots.ts`](src/app/robots.ts) |
-| **Extras** | [`public/llms.txt`](public/llms.txt), [`public/.well-known/security.txt`](public/.well-known/security.txt) |
-
----
-
-## Agent tooling (optional)
-
-- **[AGENTS.md](AGENTS.md)** — notes for AI assistants working in this repo.
-- **[CLAUDE.md](CLAUDE.md)** — points at `AGENTS.md`.
 
 ---
 
