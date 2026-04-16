@@ -1,14 +1,19 @@
 # Next.js app lives at the REPOSITORY ROOT (not packages/cli).
-# In Netlify UI: Site settings → Build & deploy → Build settings:
-#   - "Project to deploy" / package path: NONE — use entire repo / root only
-#   - Base directory: (empty)
-#   - Publish directory: (empty) — required for @netlify/plugin-nextjs
-#   - Build command: npm run build
+# Netlify UI (Site settings → Build & deploy → Build settings):
+#   - Package directory / "Site to deploy": leave EMPTY (monorepo picker must not be packages/cli)
+#   - Base directory: empty (repo root)
+#   - Build command: npm run build (or rely on this file)
 #
+# SSR Next.js on Netlify: publish must be `.next` and @netlify/plugin-nextjs must run.
+# https://docs.netlify.com/build/frameworks/overview/#next-js
 # https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/
 
 [build]
   command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
