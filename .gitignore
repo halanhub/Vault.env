@@ -29,7 +29,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Firebase / Google CLI logs (can include account email, paths, token metadata)
 firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
 
 # env files  -  NEVER commit real secrets
 .env
