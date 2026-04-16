@@ -144,7 +144,21 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({ when: cancelWhen }),
       });
-      const data = (await res.json()) as { error?: string };
+      const raw = await res.text();
+      let data = {} as { error?: string };
+      if (raw.trim()) {
+        try {
+          data = JSON.parse(raw) as { error?: string };
+        } catch {
+          setCancelError(
+            res.status ? `Could not cancel (${res.status}). Try again or check Netlify function logs.` : "Invalid response from server."
+          );
+          return;
+        }
+      } else if (!res.ok) {
+        setCancelError(`Could not cancel (${res.status}).`);
+        return;
+      }
       if (!res.ok) {
         setCancelError(data.error ?? "Could not cancel subscription.");
         return;

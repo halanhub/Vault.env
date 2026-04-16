@@ -19,6 +19,16 @@ function firebaseUidFromSubscriptionMetadata(meta: unknown): string | undefined 
   return firebaseUidFromDodoMetadataRecord(meta as Record<string, unknown>);
 }
 
+async function readJsonBody<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 /** List active subscriptions for a product and match subscription.metadata to Firebase uid. */
 export async function findActiveSubscriptionIdForFirebaseUid(
   firebaseUid: string,
@@ -38,10 +48,8 @@ export async function findActiveSubscriptionIdForFirebaseUid(
       headers: { Authorization: `Bearer ${bearer}`, Accept: "application/json" },
     });
     if (!res.ok) return null;
-    const body = (await res.json()) as {
-      items?: Array<{ subscription_id: string; metadata?: unknown }>;
-    };
-    const items = body.items ?? [];
+    const body = await readJsonBody<{ items?: Array<{ subscription_id: string; metadata?: unknown }> }>(res);
+    const items = body?.items ?? [];
     for (const it of items) {
       const m = firebaseUidFromSubscriptionMetadata(it.metadata);
       if (m === firebaseUid) return it.subscription_id;
@@ -72,10 +80,8 @@ export async function findActiveSubscriptionIdForFirebaseUidByCustomer(
       headers: { Authorization: `Bearer ${bearer}`, Accept: "application/json" },
     });
     if (!res.ok) return null;
-    const body = (await res.json()) as {
-      items?: Array<{ subscription_id: string; metadata?: unknown }>;
-    };
-    const items = body.items ?? [];
+    const body = await readJsonBody<{ items?: Array<{ subscription_id: string; metadata?: unknown }> }>(res);
+    const items = body?.items ?? [];
     for (const it of items) {
       const m = firebaseUidFromSubscriptionMetadata(it.metadata);
       if (m === firebaseUid) return it.subscription_id;
@@ -110,11 +116,14 @@ export async function cancelDodoSubscription(
     body: JSON.stringify(body),
   });
   if (res.ok) return { ok: true };
-  let detail: unknown;
-  try {
-    detail = await res.json();
-  } catch {
-    detail = { raw: await res.text() };
+  const errText = await res.text();
+  let detail: unknown = errText;
+  if (errText.trim()) {
+    try {
+      detail = JSON.parse(errText) as unknown;
+    } catch {
+      detail = { raw: errText.slice(0, 500) };
+    }
   }
   return { ok: false, status: res.status, detail };
 }
