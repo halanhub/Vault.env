@@ -18,10 +18,32 @@ import { Footer } from "@/components/vault/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { buildCustomerPortalLoginHref } from "@/lib/customer-portal-url";
 import { buildSubscribeCheckoutHref } from "@/lib/subscribe-url";
 import { useMobile } from "@/hooks/useMobile";
 
 const CHECKOUT_BASE = process.env.NEXT_PUBLIC_CHECKOUT_URL;
+
+const portalCtaButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  width: "100%",
+  touchAction: "manipulation",
+  userSelect: "none",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  borderRadius: 999,
+  fontWeight: 700,
+  height: 48,
+  padding: "0 22px",
+  fontSize: 15,
+  letterSpacing: "-0.02em",
+  backgroundColor: "#1A1A1A",
+  color: "#fff",
+  border: "2px solid #000",
+  boxShadow: "4px 4px 0 0 #000",
+  textDecoration: "none",
+};
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 20,
@@ -35,6 +57,7 @@ const cardStyle: React.CSSProperties = {
 export default function ProfilePage() {
   const userId = useVaultStore((s) => s.userId);
   const subscribeHref = buildSubscribeCheckoutHref(CHECKOUT_BASE, userId);
+  const customerPortalHref = buildCustomerPortalLoginHref();
   const isMobile = useMobile();
   const [user, setUser] = useState<User | null>(null);
   const [billing, setBilling] = useState<BillingStatus>({ soloActive: false });
@@ -280,15 +303,39 @@ export default function ProfilePage() {
                 <Spinner size="md" />
               </div>
             ) : billing.soloActive ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#374151", lineHeight: 1.5 }}>
                   <strong style={{ color: "#1A1A1A" }}>Solo</strong> is active on your account. You can create
                   multiple encrypted projects.
                 </p>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#9ca3af", lineHeight: 1.5 }}>
-                  Billing changes (cancel, payment method) are handled by your checkout provider. Use the same
-                  email as this Vault.env account when managing your subscription there.
-                </p>
+                {customerPortalHref ? (
+                  <>
+                    <a
+                      href={customerPortalHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sm:w-auto"
+                      style={portalCtaButtonStyle}
+                    >
+                      <CreditCard size={16} strokeWidth={2.5} aria-hidden />
+                      Manage subscription
+                    </a>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#6b7280", lineHeight: 1.55 }}>
+                      Opens Dodo&apos;s secure customer portal in a new tab. Sign in with the{" "}
+                      <strong style={{ color: "#374151" }}>same email</strong> as this Vault.env account. There you
+                      can <strong style={{ color: "#374151" }}>cancel</strong> (immediately or at period end), update
+                      payment, or download invoices.
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#9ca3af", lineHeight: 1.55 }}>
+                    To show a &quot;Manage subscription&quot; button here, set{" "}
+                    <code style={{ fontSize: 12, color: "#6b7280" }}>NEXT_PUBLIC_DODO_CUSTOMER_PORTAL_LOGIN_URL</code>{" "}
+                    (full static portal link from Dodo: Sales → Customer → Share invite) or{" "}
+                    <code style={{ fontSize: 12, color: "#6b7280" }}>NEXT_PUBLIC_DODO_BUSINESS_ID</code> for the hosted
+                    login URL. Until then, use the same email as this account at your Dodo customer portal to cancel.
+                  </p>
+                )}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
