@@ -123,7 +123,17 @@ export async function uploadProjectImage(
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `projectImages/${user.uid}/${Date.now()}.${ext}`;
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  try {
+    await uploadBytes(storageRef, file);
+  } catch (e: unknown) {
+    const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code?: string }).code) : "";
+    if (code === "storage/unauthorized") {
+      throw new Error(
+        "Firebase Storage blocked this upload (storage/unauthorized). Deploy the rules from storage.rules in this repo: run `firebase deploy --only storage`, or paste the same rules into Firebase Console → Storage → Rules. Also confirm NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET matches your project’s default bucket."
+      );
+    }
+    throw e;
+  }
   const { getDownloadURL } = await import("firebase/storage");
   return getDownloadURL(storageRef);
 }

@@ -1,4 +1,7 @@
 rules_version = '2';
+// Deploy to your project or uploads fail with storage/unauthorized:
+//   firebase deploy --only storage
+// (firebase.json maps this file under "storage": { "rules": "storage.rules" })
 
 service firebase.storage {
   match /b/{bucket}/o {
