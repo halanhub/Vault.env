@@ -6,7 +6,15 @@
 import { firebaseUidFromDodoMetadataRecord } from "./dodo-metadata";
 
 function dodoApiBase(): string {
-  return process.env.DODO_PAYMENTS_API_BASE?.replace(/\/$/, "") ?? "https://live.dodopayments.com";
+  let b = process.env.DODO_PAYMENTS_API_BASE?.trim() ?? "";
+  if (
+    (b.startsWith('"') && b.endsWith('"')) ||
+    (b.startsWith("'") && b.endsWith("'"))
+  ) {
+    b = b.slice(1, -1).trim();
+  }
+  b = b.replace(/\/$/, "");
+  return b.length > 0 ? b : "https://live.dodopayments.com";
 }
 
 function dodoBearer(): string | null {
@@ -34,7 +42,14 @@ async function dodoFetch(url: string, init?: RequestInit): Promise<Response | nu
   try {
     return await fetch(url, init);
   } catch (e) {
-    console.error("[dodo] request failed:", url, e);
+    const code =
+      e && typeof e === "object" && "cause" in e && e.cause && typeof e.cause === "object" && "code" in e.cause
+        ? String((e.cause as { code?: unknown }).code)
+        : e && typeof e === "object" && "code" in e
+          ? String((e as { code?: unknown }).code)
+          : "";
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[dodo] request failed:", url, code || msg, e);
     return null;
   }
 }
@@ -130,7 +145,7 @@ export async function cancelDodoSubscription(
       ok: false,
       status: 503,
       detail:
-        "Could not reach Dodo API from the server. Verify DODO_PAYMENTS_API_BASE matches your Dodo REST host (e.g. https://live.dodopayments.com) and that the key is valid.",
+        "Could not open a connection to Dodo from Netlify (fetch threw before any HTTP response). Set DODO_PAYMENTS_API_BASE to exactly https://live.dodopayments.com with no spaces or surrounding quotes. Confirm DODO_PAYMENTS_API_KEY is your live secret key. Test from your computer: curl -sS -H 'Authorization: Bearer YOUR_KEY' 'https://live.dodopayments.com/products?page_size=1' — if that works locally but cancel still fails, check Netlify env values for typos or ask Dodo about API egress.",
     };
   }
   if (res.ok) return { ok: true };
