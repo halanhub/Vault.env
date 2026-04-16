@@ -55,8 +55,8 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
 ];
 
 /**
- * Flex: feature list grows; CTA bundle uses marginTop:auto to sit at the bottom of the card.
- * Footnote slots share a min height so primary buttons stay roughly aligned across columns.
+ * Flex: feature list grows; CTA bundle uses marginTop:auto at the bottom of the card.
+ * Footnote slot uses a fixed height so longer Solo copy does not shift buttons vs other columns.
  */
 const cardStyle: CSSProperties = {
   backgroundColor: "#fff",
@@ -137,12 +137,17 @@ const footnoteSlotStyle: CSSProperties = {
   textAlign: "center",
   lineHeight: 1.45,
   boxSizing: "border-box",
-  padding: "0 4px 2px",
+  padding: "0 4px",
   flexShrink: 0,
   display: "flex",
   flexDirection: "column",
-  justifyContent: "flex-end",
-  minHeight: 56,
+  alignItems: "center",
+  justifyContent: "center",
+  /** Tall enough for 4 lines at 13px/1.45 on prod fonts + checkout blurb */
+  height: 100,
+  minHeight: 100,
+  maxHeight: 100,
+  overflowY: "auto",
 };
 
 export function LandingPricingFaq() {
