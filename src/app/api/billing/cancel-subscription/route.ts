@@ -15,6 +15,25 @@ export const runtime = "nodejs";
 
 type Billing = Awaited<ReturnType<typeof getBillingFieldsForUid>>;
 
+/** Turn Dodo error body into a single string for the Profile UI. */
+function messageFromDodoFailure(detail: unknown, httpStatus: number): string {
+  if (typeof detail === "string" && detail.trim().length > 0) {
+    return detail;
+  }
+  if (detail && typeof detail === "object") {
+    const o = detail as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message.length > 0) return o.message;
+    if (typeof o.error === "string" && o.error.length > 0) return o.error;
+  }
+  if (httpStatus === 401 || httpStatus === 403) {
+    return "Dodo rejected the API key (wrong key, read-only key, or test vs live mismatch). Use a live secret key with write access in Netlify.";
+  }
+  if (httpStatus === 503) {
+    return "Dodo returned unavailable, or the server could not reach live.dodopayments.com. Retry later or check DODO_PAYMENTS_API_BASE and your API key.";
+  }
+  return "Dodo rejected the cancel request. Open the subscription in the Dodo dashboard or try the other cancel option (period end vs immediately).";
+}
+
 /** Resolve active subscription id: Firestore, then Dodo list by customer, then by product env. */
 async function lookupSubscriptionId(
   uid: string,
@@ -149,7 +168,8 @@ export async function POST(req: Request) {
     if (!result.ok) {
       const status =
         result.status >= 400 && result.status < 600 ? result.status : 502;
-      return NextResponse.json({ error: "Dodo API error.", detail: result.detail }, { status });
+      const errorText = messageFromDodoFailure(result.detail, result.status);
+      return NextResponse.json({ error: errorText, detail: result.detail }, { status });
     }
 
     return NextResponse.json({ ok: true, when });
