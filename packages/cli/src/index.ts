@@ -6,7 +6,7 @@ import os from "node:os";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { Command } from "commander";
-import { initializeApp, type FirebaseApp } from "firebase/app";
+import { deleteApp, initializeApp, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -130,6 +130,57 @@ function getFirebaseEnv(): FirebaseEnv {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+
+function getErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object" && "code" in err) {
+    const code = (err as { code?: unknown }).code;
+    return typeof code === "string" ? code : undefined;
+  }
+  if (err instanceof Error) {
+    const match = err.message.match(/\((auth\/[^)]+)\)/);
+    return match?.[1];
+  }
+  return undefined;
+}
+
+function formatCliError(err: unknown): string {
+  const code = getErrorCode(err);
+  if (code === "auth/invalid-credential") {
+    return [
+      "Invalid Vault.env email or password.",
+      "If you use Google sign-in on the website, open Profile and add a CLI password first.",
+      "Then run vault-env login with your Vault.env email and that CLI password.",
+    ].join("\n");
+  }
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+async function shutdownFirebase(): Promise<void> {
+  if (auth) {
+    try {
+      await Promise.race([
+        signOut(auth),
+        new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+      ]);
+    } catch {
+      /* already signed out or auth failed before a user session was created */
+    }
+  }
+  if (app) {
+    try {
+      await Promise.race([
+        deleteApp(app),
+        new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+      ]);
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+  auth = null;
+  db = null;
+  app = null;
+}
 
 function getApp(cfg: FirebaseEnv): FirebaseApp {
   if (!app) {
@@ -518,10 +569,15 @@ async function main() {
       }
     );
 
-  await program.parseAsync(process.argv);
+  try {
+    await program.parseAsync(process.argv);
+  } finally {
+    await shutdownFirebase();
+  }
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
+main().catch(async (err) => {
+  console.error(formatCliError(err));
+  await shutdownFirebase();
+  process.exitCode = 1;
 });

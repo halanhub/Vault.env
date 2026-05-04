@@ -4,13 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   EmailAuthProvider,
+  linkWithCredential,
   onAuthStateChanged,
   reauthenticateWithCredential,
+  reauthenticateWithPopup,
   updatePassword,
   type User,
 } from "firebase/auth";
 import { ArrowLeft, CreditCard, KeyRound } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, googleAuthProvider } from "@/lib/firebase";
 import { useVaultStore } from "@/store/vault-store";
 import { getBillingStatus, type BillingStatus } from "@/lib/billing";
 import { Header } from "@/components/vault/header";
@@ -85,8 +87,12 @@ export default function ProfilePage() {
     e.preventDefault();
     setPwError("");
     setPwSuccess("");
-    if (!user || !hasPasswordProvider) return;
-    if (!currentPassword || !newPassword) {
+    if (!user) return;
+    if (hasPasswordProvider && !currentPassword) {
+      setPwError("Enter your current password.");
+      return;
+    }
+    if (!newPassword) {
       setPwError("Fill in all fields.");
       return;
     }
@@ -100,10 +106,33 @@ export default function ProfilePage() {
     }
     setPwLoading(true);
     try {
-      const cred = EmailAuthProvider.credential(user.email ?? "", currentPassword);
-      await reauthenticateWithCredential(user, cred);
-      await updatePassword(user, newPassword);
-      setPwSuccess("Password updated.");
+      const email = user.email ?? "";
+      if (!email) {
+        setPwError("This account does not have an email address.");
+        return;
+      }
+      const newCred = EmailAuthProvider.credential(email, newPassword);
+      if (hasPasswordProvider) {
+        const currentCred = EmailAuthProvider.credential(email, currentPassword);
+        await reauthenticateWithCredential(user, currentCred);
+        await updatePassword(user, newPassword);
+        setPwSuccess("Password updated.");
+      } else {
+        try {
+          await linkWithCredential(user, newCred);
+        } catch (err: unknown) {
+          const code =
+            err && typeof err === "object" && "code" in err
+              ? String((err as { code: string }).code)
+              : "";
+          if (code !== "auth/requires-recent-login") throw err;
+          await reauthenticateWithPopup(user, googleAuthProvider);
+          await linkWithCredential(user, newCred);
+        }
+        await user.reload();
+        setUser(auth.currentUser);
+        setPwSuccess("CLI password added. You can now run vault-env login with this email and password.");
+      }
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -278,13 +307,14 @@ export default function ProfilePage() {
             </div>
 
             {!hasPasswordProvider ? (
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#6b7280", lineHeight: 1.55 }}>
-                You signed in with Google. Password changes apply to email/password accounts only. To use a
-                password, add one in your Google account settings or link an email/password sign-in method in
-                Firebase if you enable it.
+              <p style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 600, color: "#6b7280", lineHeight: 1.55 }}>
+                You signed in with Google. Add a Vault.env password here to use the CLI with the same email,
+                user ID, and projects.
               </p>
-            ) : (
-              <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            ) : null}
+
+            <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {hasPasswordProvider ? (
                 <Input
                   type="password"
                   label="Current password"
@@ -292,9 +322,10 @@ export default function ProfilePage() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                 />
+              ) : null}
                 <Input
                   type="password"
-                  label="New password"
+                  label={hasPasswordProvider ? "New password" : "CLI password"}
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -313,10 +344,15 @@ export default function ProfilePage() {
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#3a9a3a" }}>{pwSuccess}</p>
                 ) : null}
                 <Button type="submit" size="md" disabled={pwLoading} style={{ alignSelf: "flex-start" }}>
-                  {pwLoading ? <Spinner size="sm" className="border-white border-t-transparent" /> : "Update password"}
+                  {pwLoading ? (
+                    <Spinner size="sm" className="border-white border-t-transparent" />
+                  ) : hasPasswordProvider ? (
+                    "Update password"
+                  ) : (
+                    "Add CLI password"
+                  )}
                 </Button>
               </form>
-            )}
           </section>
 
           <section style={cardStyle}>

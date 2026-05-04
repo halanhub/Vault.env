@@ -81,7 +81,8 @@ export function CliSyncPanel({ projectId }: { projectId: string }) {
           }}
         >
           <p style={{ margin: "14px 0 12px", fontSize: 14 }}>
-            Install the CLI, then use the same email and password as this site. For{" "}
+            Install the CLI, then sign in with your Vault.env email/password. If you use Google
+            sign-in, add a CLI password from Profile first. For{" "}
             <strong>pull</strong> and <strong>push</strong>, enter your vault master password when
             asked. Nothing else to download - the tool connects to Vault.env automatically. The
             commands below already include <strong>this project</strong>.

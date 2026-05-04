@@ -44,6 +44,9 @@ Requires an npm account with access to the `@vaultenv` scope.
 
 For the hosted **vault-env.com** service, **no connection file is required**. Install **`@vaultenv/cli@0.1.2`** or newer and run `vault-env login` - the public Firebase client config is built in.
 
+If you sign in to the website with Google, add a CLI password from **Profile** first. The CLI
+currently uses Firebase email/password auth, not Google browser sign-in.
+
 ## Connection file (self-hosted)
 
 If you run your own Vault.env deployment, put **`vault-env.cli.env`** in your project folder, or use `--env-file`. The CLI loads `vault-env.cli.env`, `vault-env.firebase.env`, or `.env.local` when present (optional overrides before applying defaults).
@@ -52,7 +55,7 @@ If you run your own Vault.env deployment, put **`vault-env.cli.env`** in your pr
 
 | Command | Description |
 |---------|-------------|
-| `vault-env login` | Save Vault.env account email/password under `~/.vault-env/credentials.json` (plain text; restrict permissions). |
+| `vault-env login` | Save Vault.env account email/password, or the CLI password you added for a Google account, under `~/.vault-env/credentials.json` (plain text; restrict permissions). |
 | `vault-env logout` | Remove saved credentials. |
 | `vault-env whoami` | Print Firebase uid and email. |
 | `vault-env projects` | List project ids and names. |

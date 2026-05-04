@@ -127,7 +127,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No active Solo subscription on this account." }, { status: 400 });
     }
 
-    let subscriptionId = await lookupSubscriptionId(uid, billing);
+    const subscriptionId = await lookupSubscriptionId(uid, billing);
     if (!subscriptionId) {
       return NextResponse.json(
         {
